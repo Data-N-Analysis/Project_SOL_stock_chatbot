@@ -1,74 +1,191 @@
 import streamlit as st
 import requests
-import torch
-import pandas as pd
+import random
+import time
+import urllib.parse
 import mplfinance as mpf
-from loguru import logger
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA, ConversationalRetrievalChain
-from langchain.chat_models import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import FinanceDataReader as fdr
+import tiktoken
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import os
 
+# 현재 파일(파이썬 스크립트) 기준 폰트 경로를 지정
+font_path = os.path.join(os.path.dirname(__file__), 'fonts', 'NanumGothic.ttf')
+if os.path.exists(font_path):
+    font_name = fm.FontProperties(fname=font_path).get_name()
+    plt.rcParams['font.family'] = font_name
+    plt.rcParams['axes.unicode_minus'] = False
+else:
+    st.warning("폰트 파일을 찾을 수 없습니다. 한글이 깨질 수 있습니다.")
 
-def get_news(company_name, client_id, client_secret):
-    """네이버 뉴스 API를 사용하여 최신 뉴스 가져오기"""
-    url = f"https://openapi.naver.com/v1/search/news.json?query={company_name}&display=5&sort=date"
-    headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
+def main():
+    st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
+    st.title("_기업 정보 분석 주식 추천 :red[QA Chat]_ :chart_with_upwards_trend:")
+
+    if "conversation" not in st.session_state:
+        st.session_state.conversation = None
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = None
+    if "processComplete" not in st.session_state:
+        st.session_state.processComplete = None
+
+    with st.sidebar:
+        openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
+        company_name = st.text_input("분석할 기업명 (코스피 상장)")
+        process = st.button("분석 시작")
+
+    if process:
+        if not openai_api_key or not company_name:
+            st.info("OpenAI API 키와 기업명을 입력해주세요.")
+            st.stop()
+
+        news_data = crawl_news(company_name)
+        if not news_data:
+            st.warning("해당 기업의 최근 뉴스를 찾을 수 없습니다.")
+            st.stop()
+
+        text_chunks = get_text_chunks(news_data)
+        vectorstore = get_vectorstore(text_chunks)
+
+        st.session_state.conversation = create_chat_chain(vectorstore, openai_api_key)
+        st.session_state.processComplete = True
+
+        st.subheader(f"📈 {company_name} 최근 주가 추이")
+        visualize_stock(company_name, "일")
+
+        with st.chat_message("assistant"):
+            st.markdown("📢 최근 기업 뉴스 목록:")
+            for news in news_data:
+                st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
+
+    if query := st.chat_input("질문을 입력해주세요."):
+        with st.chat_message("user"):
+            st.markdown(query)
+
+        with st.chat_message("assistant"):
+            with st.spinner("분석 중..."):
+                result = st.session_state.conversation({"question": query})
+                response = result['answer']
+
+                st.markdown(response)
+                with st.expander("참고 뉴스 확인"):
+                    for doc in result['source_documents']:
+                        st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
+
+def crawl_news(company):
+    today = datetime.today()
+    start_date = (today - timedelta(days=5)).strftime('%Y%m%d')
+    end_date = today.strftime('%Y%m%d')
+    encoded_query = urllib.parse.quote(company)
+    url = f"https://search.naver.com/search.naver?where=news&query={encoded_query}&nso=so:r,p:from{start_date}to{end_date}"
+    headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.json()["items"]
-    else:
-        return []
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    articles = soup.select("ul.list_news > li")
+
+    data = []
+    for article in articles[:10]:
+        title = article.select_one("a.news_tit").text
+        link = article.select_one("a.news_tit")['href']
+        content = article.select_one("div.news_dsc").text if article.select_one("div.news_dsc") else ""
+        data.append({"title": title, "link": link, "content": content})
+
+    return data
+
+def tiktoken_len(text):
+    tokenizer = tiktoken.get_encoding("cl100k_base")
+    tokens = tokenizer.encode(text)
+    return len(tokens)
+
+def get_text_chunks(news_data):
+    # 뉴스 요약 없이 제목과 내용을 그대로 사용
+    texts = [f"{item['title']}\n{item['content']}" for item in news_data]
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=900,
+        chunk_overlap=100,
+        length_function=tiktoken_len
+    )
+    return text_splitter.create_documents(texts)
+
+def get_vectorstore(text_chunks):
+    embeddings = HuggingFaceEmbeddings(
+        model_name="jhgan/ko-sroberta-multitask",
+        model_kwargs={'device': 'cpu'},
+        encode_kwargs={'normalize_embeddings': True}
+    )
+    return FAISS.from_documents(text_chunks, embeddings)
+
+def create_chat_chain(vectorstore, openai_api_key):
+    llm = ChatOpenAI(openai_api_key=openai_api_key, model_name='gpt-4', temperature=0)
+    return ConversationalRetrievalChain.from_llm(
+        llm=llm, chain_type="stuff", retriever=vectorstore.as_retriever(),
+        memory=ConversationBufferMemory(memory_key='chat_history', return_messages=True, output_key='answer'),
+        get_chat_history=lambda h: h, return_source_documents=True)
+
+def get_ticker(company):
+    """
+    FinanceDataReader를 통해 KRX 상장 기업 정보를 불러오고,
+    입력한 기업명에 해당하는 티커 코드를 반환합니다.
+    환경에 따라 컬럼명이 다를 수 있으므로 여러 경우를 처리합니다.
+    """
+    try:
+        listing = fdr.StockListing('KRX')
+        if listing.empty:
+            listing = fdr.StockListing('KOSPI')
+        if listing.empty:
+            st.error("KRX 혹은 KOSPI 상장 기업 정보를 불러올 수 없습니다.")
+            return None
+
+        # 여러 가지 컬럼 조합에 대해 처리합니다.
+        if "Code" in listing.columns and "Name" in listing.columns:
+            name_col = "Name"
+            ticker_col = "Code"
+        elif "Symbol" in listing.columns and "Name" in listing.columns:
+            name_col = "Name"
+            ticker_col = "Symbol"
+        elif "종목코드" in listing.columns and "기업명" in listing.columns:
+            name_col = "기업명"
+            ticker_col = "종목코드"
+        else:
+            st.error("상장 기업 정보의 컬럼명이 예상과 다릅니다: " + ", ".join(listing.columns))
+            return None
+
+        # 좌우 공백 제거 후 비교
+        ticker_row = listing[listing[name_col].str.strip() == company.strip()]
+        if ticker_row.empty:
+            st.error(f"입력한 기업명 '{company}'에 해당하는 정보가 없습니다.\n예시: '삼성전자' 입력 시 티커 '005930'을 반환합니다.")
+            return None
+        else:
+            ticker = ticker_row.iloc[0][ticker_col]
+            # 숫자 형식인 경우 6자리 문자열로 변환 (예: 5930 -> '005930')
+            return str(ticker).zfill(6)
+    except Exception as e:
+        st.error(f"티커 변환 중 오류 발생: {e}")
+        return None
 
 
-def process_news_data(news_items):
-    """RecursiveCharacterTextSplitter를 활용하여 뉴스 조각내기"""
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-    texts = [news['title'] + " " + news['description'] for news in news_items]
-    split_texts = text_splitter.split_text(" ".join(texts))
-    return split_texts
+def visualize_stock(company, period):
+    ticker = get_ticker(company)
+    if not ticker:
+        st.error("해당 기업의 티커 코드를 찾을 수 없습니다. 올바른 기업명을 입력했는지 확인해주세요.")
+        return
 
+    try:
+        df = fdr.DataReader(ticker, '2024-01-01')
+    except Exception as e:
+        st.error(f"주가 데이터를 불러오는 중 오류 발생: {e}")
+        return
 
-def create_embeddings(texts):
-    """KoBERT를 활용하여 뉴스 임베딩 생성 및 저장"""
-    embeddings = HuggingFaceEmbeddings(model_name="skt/kobert-base-v1")
-    vector_store = Chroma.from_texts(texts, embeddings)
-    return vector_store
-
-
-def retrieve_relevant_sentences(query, vector_store):
-    """LangChain Retriever를 사용하여 관련 문장 검색"""
-    retriever = vector_store.as_retriever()
-    relevant_docs = retriever.get_relevant_documents(query)
-    return " ".join([doc.page_content for doc in relevant_docs])
-
-
-def generate_summary(query, context, openai_key):
-    """GPT-4를 활용하여 요약 생성"""
-    llm = ChatOpenAI(openai_api_key=openai_key, model_name='gpt-4', temperature=0)
-    qa_chain = RetrievalQA(llm=llm, retriever=context)
-    return qa_chain.run(query)
-
-
-def analyze_sentiment(news_text):
-    """KoBERT 모델을 사용하여 뉴스 감성 분석"""
-    tokenizer = AutoTokenizer.from_pretrained("skt/kobert-base-v1")
-    model = AutoModelForSequenceClassification.from_pretrained("skt/kobert-base-v1")
-
-    inputs = tokenizer(news_text, return_tensors="pt", truncation=True, padding=True, max_length=512)
-    outputs = model(**inputs)
-    probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
-    sentiment = "긍정" if probs[0][1] > probs[0][0] else "부정"
-    return sentiment
-
-
-def visualize_stock(symbol, period):
-    """MPLFinance를 활용한 주가 시각화 (일/주/월/년)"""
-    df = fdr.DataReader(symbol, '2024-01-01')
     if period == "일":
         df = df.tail(30)
     elif period == "주":
@@ -77,36 +194,17 @@ def visualize_stock(symbol, period):
         df = df.resample('M').last()
     elif period == "년":
         df = df.resample('Y').last()
-    mpf.plot(df, type='candle', style='charles', title=f"{symbol} 주가 ({period})", volume=True)
 
+    # returnfig=True 옵션으로 mplfinance가 Figure+Axes를 생성하게 한 뒤, st.pyplot()으로 출력
+    fig, _ = mpf.plot(
+        df,
+        type='candle',
+        style='charles',
+        title=f"{company}({ticker}) 주가 ({period})",
+        volume=True,
+        returnfig=True
+    )
+    st.pyplot(fig)
 
-st.title("국내 주식 뉴스 기반 추천 QA 챗봇")
-company_name = st.text_input("기업명을 입력하세요:")
-client_id = ""
-client_secret = ""
-openai_key = st.text_input("OpenAI API Key", type="password")
-period = st.selectbox("조회 기간", ["일", "주", "월", "년"])
-
-if st.button("검색"):
-    if not openai_key:
-        st.info("OpenAI API 키를 입력해주세요.")
-        st.stop()
-    news_items = get_news(company_name, client_id, client_secret)
-    if news_items:
-        st.subheader("최신 뉴스 및 감성 분석 결과")
-        processed_texts = process_news_data(news_items)
-        vector_store = create_embeddings(processed_texts)
-        context = retrieve_relevant_sentences(company_name, vector_store)
-        summary = generate_summary(company_name, context, openai_key)
-        st.write("요약 정보:", summary)
-        for news in news_items:
-            sentiment = analyze_sentiment(news['title'] + " " + news['description'])
-            st.write(f"[{news['title']}]({news['link']}) - 감성 분석: {sentiment}")
-        st.subheader("주가 트렌드")
-        symbol = fdr.StockListing("KRX")[fdr.StockListing("KRX")["Name"] == company_name]["Code"].values
-        if len(symbol) > 0:
-            visualize_stock(symbol[0], period)
-        else:
-            st.write("해당 기업의 주식 정보를 찾을 수 없습니다.")
-    else:
-        st.write("관련 뉴스가 없습니다.")
+if __name__ == '__main__':
+    main()
