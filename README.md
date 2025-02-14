@@ -55,16 +55,12 @@
 <br/>
 
 ## Project Summary
-- 프로젝트를 자유양식으로 자유롭게 설명해주세요
+- 사용자에게 기업에 대한 정보와 최근 주가 정보를 제공하여 주식 투자에 도움을 주는 챗봇
 
-**ML_project_Taitanic**
-- 대회명 : 타이타닉 생존자 예측
-- 팀명 : 오승태콤미쳤팀
-- 주제 : 타이타님 생존자를 예측하는 ML 구현
-
-
-- 데이터셋 : 데이콘(https://dacon.io/competitions/open/235539/overview/description)
-- 목적/효과 : 타이타님 생존자의 정보를 ~~~~~~~ 예측하는 모델을 ~~~~~~~~~ 이용하여 ㅇ떻게 ~~~~~~ 개발
+**stock_chatbot**
+- 팀명 : SOL
+- 주제 : 사용자에게 기업에 대한 최신 정보와 최근 주가 정보를 제공하고 기업에 대한 자세한 정보를 QA해주는 챗봇 구현
+- 목적/효과 : 주식을 투자하고싶으나 기업에 대한 자세한 정보를 찾기 귀찮은 사용자에게 최신 정보를 제공함
 - 기술스택<div align=left> 
 	`전처리` : 
 	<img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=Pandas&logoColor=white">
