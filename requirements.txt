@@ -5,10 +5,13 @@ langchain_community
 torch
 chromadb
 finance-datareader
+sentence-transformers
 unstructured
 transformers
+faiss-cpu
 tiktoken
 openai
 mplfinance
 plotly
 loguru
+bs4
