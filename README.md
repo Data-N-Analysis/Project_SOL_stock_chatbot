@@ -92,7 +92,7 @@
 
 ## ETCs
 
-웹 구현: https://stockrecomchatbot-8pwd3dd2vrwpdzac8huvsb.streamlit.app/
+웹 구현: https://exchatbot-3iksuhppyjlxsgzxgfmzdq.streamlit.app/#a287aff5
 
 <br/><br/>
 
