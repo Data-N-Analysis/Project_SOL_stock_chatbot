@@ -51,7 +51,7 @@ def main():
     with st.sidebar:
         openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
         company_name = st.text_input("분석할 기업명 (코스피 상장)")
-        days = st.number_input("몇 일 전부터의 기사를 검색할까요?", min_value=1, value=7)  # 기간을 사용자 입력받기
+        days = st.number_input("며칠 전부터의 기사를 검색할까요?", min_value=1, value=7)  # 기간을 사용자 입력받기
         process = st.button("분석 시작")
 
     if process:
