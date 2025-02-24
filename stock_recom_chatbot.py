@@ -81,7 +81,9 @@ def main():
         
         st.markdown("최근 기업 뉴스 목록을 보려면 누르시오")
         
-    with st.expander("뉴스 보기"):
+    # 뉴스 보기 섹션은 이제 첫 화면에서는 표시하지 않음
+    if st.session_state.processComplete:
+        with st.expander("뉴스 보기"):
             # 처음에는 10개의 뉴스만 표시
             for i, news in enumerate(st.session_state.news_data[:10]):
                 st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
@@ -91,6 +93,7 @@ def main():
                 if st.button('더보기'):
                     for news in st.session_state.news_data[10:]:
                         st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
+
 
 
     # 채팅 부분: 사용자가 질문을 입력하면 대화가 이어짐
