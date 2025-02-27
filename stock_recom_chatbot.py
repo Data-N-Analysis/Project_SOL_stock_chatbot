@@ -37,6 +37,7 @@ def main():
     with st.sidebar:
         openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
         company_name = st.text_input("분석할 기업명 (코스피 상장)")
+        days = st.number_input("최근 며칠 동안의 기사를 검색할까요?", min_value=1, max_value=30, value=7)  # 기간을 사용자 입력받기
         process = st.button("분석 시작")
 
     if process:
@@ -101,9 +102,21 @@ def main():
             else:
                 plot_stock_plotly(df, st.session_state.company_name, st.session_state.selected_period)
 
-        st.markdown("📢 최근 기업 뉴스 목록:")
-        for news in st.session_state.news_data:
-            st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
+        st.markdown("최근 기업 뉴스 목록을 보려면 누르시오")
+
+    if st.session_state.processComplete:
+        with st.expander("뉴스 보기"):
+            news_data = st.session_state.news_data
+
+            # 처음 10개 뉴스만 표시
+            for i, news in enumerate(news_data[:10]):
+                st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
+
+            # '더보기' 버튼 클릭 시 나머지 뉴스 표시
+            if len(news_data) > 10:
+                if st.button('더보기', key="show_more"):
+                    for news in news_data[10:]:
+                        st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
 
     # 대화 히스토리 표시
     st.subheader("💬 대화 내용")
@@ -147,26 +160,62 @@ def main():
             st.rerun()  # experimental_rerun() 대신 rerun() 사용
 
 
-def crawl_news(company):
+
+def crawl_news(company, days, threshold=0.3):
     today = datetime.today()
-    start_date = (today - timedelta(days=5)).strftime('%Y%m%d')
+    start_date = (today - timedelta(days=days)).strftime('%Y%m%d')
     end_date = today.strftime('%Y%m%d')
     encoded_query = urllib.parse.quote(company)
-    url = f"https://search.naver.com/search.naver?where=news&query={encoded_query}&nso=so:r,p:from{start_date}to{end_date}"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, 'html.parser')
-    articles = soup.select("ul.list_news > li")
+
+    url_template = f"https://search.naver.com/search.naver?where=news&query={encoded_query}&nso=so:r,p:from{start_date}to{end_date}&start={{}}"
+
+    headers = {
+        "User-Agent": random.choice([
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36"
+        ])
+    }
 
     data = []
-    for article in articles[:10]:
-        title = article.select_one("a.news_tit").text
-        link = article.select_one("a.news_tit")['href']
-        content = article.select_one("div.news_dsc").text if article.select_one("div.news_dsc") else ""
-        data.append({"title": title, "link": link, "content": content})
+    for page in range(1, 6):
+        url = url_template.format((page - 1) * 10 + 1)
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        articles = soup.select("ul.list_news > li")
 
-    return data
+        for article in articles:
+            title = article.select_one("a.news_tit").text
+            link = article.select_one("a.news_tit")['href']
+            content = article.select_one("div.news_dsc").text if article.select_one("div.news_dsc") else ""
+            data.append({"title": title, "link": link, "content": content})
+
+    return deduplicate_news(data, threshold)
+
+
+def deduplicate_news(news_data, threshold=0.3):
+    if len(news_data) <= 1:
+        return news_data
+
+    # 제목과 본문을 합친 텍스트 생성
+    combined_texts = [news['title'] + " " + news['content'] for news in news_data]
+    vectorizer = TfidfVectorizer().fit_transform(combined_texts)
+    cosine_sim = cosine_similarity(vectorizer, vectorizer)
+
+    filtered_news = []
+    seen_indices = set()
+
+    for i, news in enumerate(news_data):
+        if i in seen_indices:
+            continue
+
+        filtered_news.append(news)
+        for j in range(i + 1, len(news_data)):
+            if news_data[j]['title'] == news['title'] or cosine_sim[i, j] > threshold:
+                seen_indices.add(j)
+
+    return filtered_news
 
 
 def tiktoken_len(text):
