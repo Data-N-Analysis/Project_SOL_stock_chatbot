@@ -58,11 +58,12 @@ def main():
     if st.session_state.processComplete and st.session_state.company_name:
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # CSS를 활용한 네모 틀 적용 및 버튼 가로 정렬 + 글자 왼쪽 정렬
+        # CSS 스타일 적용
         st.markdown(
             """
             <style>
-                .period-container {
+                /* 기간 선택 컨테이너 스타일 */
+                div.period-box {
                     border: 2px solid #ccc;
                     border-radius: 10px;
                     padding: 15px;
@@ -70,42 +71,35 @@ def main():
                     margin-bottom: 15px;
                     max-width: 600px;
                 }
-                .period-title {
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                    font-size: 16px;
+                /* 기간 선택 제목 스타일 */
+                div.period-box h4 {
                     text-align: center;
+                    margin-bottom: 10px;
+                    font-weight: bold;
                 }
-                /* 라디오 버튼 컨테이너 및 버튼 스타일링 */
-                div.row-widget.stRadio > div {
+                /* 라디오 버튼 가로 정렬 */
+                div.period-box div[data-testid="stHorizontalRadio"] {
                     display: flex;
-                    flex-direction: row;
                     justify-content: space-around;
-                }
-                .stRadio label {
-                    font-size: 14px;
                 }
             </style>
             """,
             unsafe_allow_html=True
         )
 
-        # 기간 선택을 위한 컨테이너 열기
-        st.markdown('<div class="period-container">', unsafe_allow_html=True)
-        st.markdown('<div class="period-title">기간 선택</div>', unsafe_allow_html=True)
-        
-        # 컨테이너 내부에 라디오 버튼 배치
-        selected_period = st.radio(
-            "",  # 라벨 제거
-            options=["1day", "week", "1month", "1year"],
-            index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
-            key="radio_selection",
-            horizontal=True,
-            on_change=update_period
-        )
-        
-        # 컨테이너 닫기
-        st.markdown('</div>', unsafe_allow_html=True)
+        # 기간 선택 박스와 라디오 버튼 배치
+        period_container = st.container()
+        with period_container:
+            st.markdown('<div class="period-box"><h4>기간 선택</h4>', unsafe_allow_html=True)
+            selected_period = st.radio(
+                "",  # 라벨 제거
+                options=["1day", "week", "1month", "1year"],
+                index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
+                key="radio_selection",
+                horizontal=True,
+                on_change=update_period
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
 
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
