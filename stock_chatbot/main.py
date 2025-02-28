@@ -60,7 +60,7 @@ def main():
     if st.session_state.processComplete and st.session_state.company_name:
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # ✅ CSS를 활용한 네모 틀 적용 및 버튼 가로 정렬
+        # ✅ CSS를 활용한 네모 틀 적용 및 버튼 가로 정렬 + 글자 왼쪽 배치
         st.markdown(
             """
             <style>
@@ -69,10 +69,12 @@ def main():
                     padding: 10px;
                     border-radius: 10px;
                     display: flex;
-                    justify-content: center;
+                    justify-content: flex-start;
                     align-items: center;
                     gap: 20px;
                     background-color: #f9f9f9;
+                    width: fit-content;
+                    margin: auto;
                 }
                 div[role="radiogroup"] {
                     display: flex;
@@ -84,13 +86,14 @@ def main():
                     align-items: center;
                     gap: 5px;
                     margin: 0;
+                    flex-direction: row-reverse;  /* ✅ 글자를 왼쪽으로 이동 */
                 }
             </style>
             """,
             unsafe_allow_html=True
         )
 
-        # ✅ 네모 틀 안에 버튼 배치 (버튼이 글자 왼쪽에 오도록 조정)
+        # ✅ 네모 틀 안에 버튼 배치 (글자가 왼쪽에 오도록 조정)
         st.markdown('<div class="radio-container">', unsafe_allow_html=True)
         selected_period = st.radio(
             "기간 선택",
