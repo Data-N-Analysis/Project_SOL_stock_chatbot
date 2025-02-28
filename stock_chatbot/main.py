@@ -1,5 +1,5 @@
 import streamlit as st
-from news_crawler import crawl_news
+from stock_chatbot.news_crawler import crawl_news
 from data_processor import get_text_chunks, get_vectorstore, create_chat_chain
 from stock_data import get_ticker, get_intraday_data_yahoo, get_daily_stock_data_fdr
 from visualization import plot_stock_plotly
