@@ -75,7 +75,7 @@ def main():
                 display: flex;
                 align-items: center;
                 gap: 5px;
-                flex-direction: row-reverse; /* ✅ 버튼이 글자 왼쪽에 위치 */
+                flex-direction: row; /* ✅ 버튼이 글자 왼쪽에 위치 */
             }
         </style>
         """, unsafe_allow_html=True)
@@ -83,7 +83,7 @@ def main():
         # ✅ "기간 선택" 글씨 크기 조정 후 출력
         st.markdown('<div class="small-title">기간 선택</div>', unsafe_allow_html=True)
 
-        # ✅ 버튼 배치 (글자 왼쪽)
+        # ✅ 버튼 배치 (글자 오른쪽, 버튼 왼쪽)
         selected_period = st.radio(
             "",  # 라벨 제거
             options=["1day", "week", "1month", "1year"],
