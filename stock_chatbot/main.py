@@ -44,7 +44,7 @@ def main():
         st.session_state.chat_history = []
 
         with st.spinner(f"🔍 {company_name}에 대한 정보 수집 중..."):
-            news_data = crawl_news(company_name)
+            news_data = crawl_news(company_name, days)
             if not news_data:
                 st.warning("해당 기업의 최근 뉴스를 찾을 수 없습니다.")
                 st.stop()
