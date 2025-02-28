@@ -58,39 +58,44 @@ def main():
     if st.session_state.processComplete and st.session_state.company_name:
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # CSS 스타일 적용
-        st.markdown(
-            """
-            <style>
-                /* 기간 선택 컨테이너 스타일 */
-                div.period-box {
-                    border: 2px solid #ccc;
-                    border-radius: 10px;
-                    padding: 15px;
-                    background-color: #f9f9f9;
-                    margin-bottom: 15px;
-                    max-width: 600px;
-                }
-                /* 기간 선택 제목 스타일 */
-                div.period-box h4 {
-                    text-align: center;
-                    margin-bottom: 10px;
-                    font-weight: bold;
-                }
-                /* 라디오 버튼 가로 정렬 */
-                div.period-box div[data-testid="stHorizontalRadio"] {
-                    display: flex;
-                    justify-content: space-around;
-                }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-
-        # 기간 선택 박스와 라디오 버튼 배치
-        period_container = st.container()
-        with period_container:
-            st.markdown('<div class="period-box"><h4>기간 선택</h4>', unsafe_allow_html=True)
+        # CSS를 사용하여 네모 상자 스타일 적용
+        st.markdown("""
+        <style>
+            .custom-box {
+                border: 1px solid #cccccc;
+                border-radius: 10px;
+                padding: 10px;
+                margin-bottom: 20px;
+                background-color: #f9f9f9;
+            }
+            .box-title {
+                text-align: center;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }
+            /* 스트림릿 기본 요소의 마진 제거 */
+            .element-container {
+                margin-bottom: 0 !important;
+            }
+            /* 라디오 버튼 컨테이너 스타일링 */
+            .stRadio > div {
+                display: flex;
+                justify-content: space-around;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # st.columns을 사용하여 더 정교한 레이아웃 제어
+        col1, col2, col3 = st.columns([1, 10, 1])
+        
+        with col2:
+            # 네모 상자 시작
+            st.markdown('<div class="custom-box">', unsafe_allow_html=True)
+            
+            # 기간 선택 제목
+            st.markdown('<div class="box-title">기간 선택</div>', unsafe_allow_html=True)
+            
+            # 라디오 버튼 (네모 상자 안에 표시됨)
             selected_period = st.radio(
                 "",  # 라벨 제거
                 options=["1day", "week", "1month", "1year"],
@@ -99,6 +104,8 @@ def main():
                 horizontal=True,
                 on_change=update_period
             )
+            
+            # 네모 상자 종료
             st.markdown('</div>', unsafe_allow_html=True)
 
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
