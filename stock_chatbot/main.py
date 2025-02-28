@@ -4,6 +4,7 @@ from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
 from stock_data import get_ticker, get_intraday_data_yahoo, get_daily_stock_data_fdr
 from visualization import plot_stock_plotly
 import re
+from langchain.chat_models import ChatOpenAI
 
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
@@ -27,6 +28,8 @@ def main():
         st.session_state.company_name = None
     if "selected_period" not in st.session_state:
         st.session_state.selected_period = "1day"
+    if "company_summary" not in st.session_state:
+        st.session_state.company_summary = None
 
     # 사이드바 설정
     with st.sidebar:
