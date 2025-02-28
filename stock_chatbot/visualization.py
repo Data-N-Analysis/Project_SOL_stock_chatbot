@@ -3,9 +3,35 @@ import streamlit as st
 import pandas as pd
 
 
+def interpolate_missing_data(df):
+    """
+    결측값 보간을 적용하여 캔들 차트가 끊기는 문제 해결
+
+    Args:
+        df (DataFrame): 주식 데이터
+
+    Returns:
+        DataFrame: 보간 적용된 주식 데이터
+    """
+    df = df.copy()
+
+    # Close 값을 선형 보간
+    df["Close"] = df["Close"].interpolate(method="linear")
+
+    # Open, High, Low 값 설정 (보간된 Close 값을 기준으로 조정)
+    df["Open"] = df["Open"].fillna(df["Close"])
+    df["High"] = df["High"].fillna(df["Close"] * 1.01)  # 보간된 Close 값의 1% 상향
+    df["Low"] = df["Low"].fillna(df["Close"] * 0.99)  # 보간된 Close 값의 1% 하향
+
+    # 거래량은 0으로 설정 (가짜 거래 방지)
+    df["Volume"] = df["Volume"].fillna(0)
+
+    return df
+
+
 def plot_stock_plotly(df, company, period):
     """
-    Plotly를 이용한 주가 시각화 함수
+    Plotly를 이용한 주가 시각화 함수 (보간 적용)
 
     Args:
         df (DataFrame): 주식 데이터
@@ -15,6 +41,9 @@ def plot_stock_plotly(df, company, period):
     if df is None or df.empty:
         st.warning(f"📉 {company} - 해당 기간({period})의 거래 데이터가 없습니다.")
         return
+
+    # 보간 적용
+    df = interpolate_missing_data(df)
 
     fig = go.Figure()
 
