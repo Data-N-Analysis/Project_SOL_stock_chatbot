@@ -60,18 +60,47 @@ def main():
     if st.session_state.processComplete and st.session_state.company_name:
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # 선택된 기간을 강제 업데이트하여 즉시 반영
-        st.session_state.radio_selection = st.session_state.selected_period
+        # ✅ CSS를 활용한 네모 틀 적용 및 버튼 가로 정렬
+        st.markdown(
+            """
+            <style>
+                .radio-container {
+                    border: 2px solid black;
+                    padding: 10px;
+                    border-radius: 10px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 20px;
+                    background-color: #f9f9f9;
+                }
+                div[role="radiogroup"] {
+                    display: flex;
+                    flex-direction: row;
+                    gap: 20px;
+                }
+                div[role="radiogroup"] label {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    margin: 0;
+                }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # ✅ 네모 틀 안에 버튼 배치 (버튼이 글자 왼쪽에 오도록 조정)
+        st.markdown('<div class="radio-container">', unsafe_allow_html=True)
         selected_period = st.radio(
             "기간 선택",
             options=["1day", "week", "1month", "1year"],
             index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
             key="radio_selection",
+            horizontal=True,
             on_change=update_period
         )
-
-        if selected_period != st.session_state.selected_period:
-            st.session_state.selected_period = selected_period
+        st.markdown('</div>', unsafe_allow_html=True)
 
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
