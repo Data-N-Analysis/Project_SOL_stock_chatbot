@@ -58,38 +58,32 @@ def main():
     if st.session_state.processComplete and st.session_state.company_name:
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # ✅ CSS 적용: 네모 틀 안에 "기간 선택"과 버튼 포함
+        # ✅ "기간 선택" 글씨 크기 조정 (작게)
         st.markdown("""
         <style>
-            .custom-box {
-                border: 2px solid #cccccc;
-                border-radius: 10px;
-                padding: 15px;
-                margin: auto;
-                background-color: #f9f9f9;
-                text-align: center;
-                width: 60%;
+            .small-title {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 5px;
             }
-            .radio-container {
+            div[role="radiogroup"] {
                 display: flex;
                 justify-content: center;
                 gap: 15px;
-                margin-top: 10px;
             }
-            .radio-container label {
+            div[role="radiogroup"] label {
                 display: flex;
                 align-items: center;
                 gap: 5px;
-                margin: 0;
-                flex-direction: row-reverse; /* ✅ 버튼을 글자 왼쪽에 배치 */
+                flex-direction: row-reverse; /* ✅ 버튼이 글자 왼쪽에 위치 */
             }
         </style>
         """, unsafe_allow_html=True)
 
-        # ✅ 네모 틀 안에 "기간 선택" 제목 + 버튼 포함
-        st.markdown('<div class="custom-box">', unsafe_allow_html=True)
-        st.markdown("### 기간 선택", unsafe_allow_html=True)
+        # ✅ "기간 선택" 글씨 크기 조정 후 출력
+        st.markdown('<div class="small-title">기간 선택</div>', unsafe_allow_html=True)
 
+        # ✅ 버튼 배치 (글자 왼쪽)
         selected_period = st.radio(
             "",  # 라벨 제거
             options=["1day", "week", "1month", "1year"],
@@ -98,8 +92,6 @@ def main():
             horizontal=True,
             on_change=update_period
         )
-
-        st.markdown('</div>', unsafe_allow_html=True)  # ✅ 네모 틀 닫기
 
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
