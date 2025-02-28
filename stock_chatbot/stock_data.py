@@ -4,6 +4,9 @@ import FinanceDataReader as fdr
 from datetime import datetime, timedelta
 import streamlit as st
 
+# ✅ 세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)
+def update_period():
+    st.session_state.selected_period = st.session_state.radio_selection
 
 def get_recent_trading_day():
     """
