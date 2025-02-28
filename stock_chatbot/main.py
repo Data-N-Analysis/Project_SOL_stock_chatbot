@@ -58,7 +58,7 @@ def main():
     if st.session_state.processComplete and st.session_state.company_name:
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # ✅ 애니메이션 포함한 CSS 스타일 추가
+        # ✅ 애니메이션 포함한 CSS 스타일 추가 (기간 선택 글씨 제거)
         st.markdown("""
         <style>
             /* 라디오 버튼 컨테이너 스타일 */
@@ -66,6 +66,7 @@ def main():
                 display: flex;
                 justify-content: center;
                 gap: 20px;
+                margin-top: -10px; /* 위쪽 여백 줄이기 */
             }
 
             /* 버튼 스타일 */
@@ -98,9 +99,9 @@ def main():
         </style>
         """, unsafe_allow_html=True)
 
-        # ✅ 버튼 UI
+        # ✅ "기간 선택" 문구 제거한 버튼 UI
         selected_period = st.radio(
-            "기간 선택",
+            "",  # ✅ 라벨 제거
             options=["1day", "week", "1month", "1year"],
             index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
             key="radio_selection",
