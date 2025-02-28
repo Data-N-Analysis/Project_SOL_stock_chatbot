@@ -1,15 +1,3 @@
-import streamlit as st
-from news_crawler import crawl_news
-from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
-from stock_data import get_ticker, get_intraday_data_yahoo, get_daily_stock_data_fdr
-from visualization import plot_stock_plotly
-
-
-def update_period():
-    """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
-    st.session_state.selected_period = st.session_state.radio_selection
-
-
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
     st.title("기업 정보 분석 QA Chat")
@@ -60,7 +48,7 @@ def main():
     if st.session_state.processComplete and st.session_state.company_name:
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # ✅ CSS를 활용한 네모 틀 적용 및 버튼 가로 정렬 + 글자 왼쪽 정렬
+        # CSS를 활용한 네모 틀 적용 및 버튼 가로 정렬 + 글자 왼쪽 정렬
         st.markdown(
             """
             <style>
@@ -72,8 +60,12 @@ def main():
                     width: fit-content;
                     margin: auto;
                     display: flex;
-                    justify-content: center;
+                    flex-direction: column;
                     align-items: center;
+                }
+                .radio-title {
+                    font-weight: bold;
+                    margin-bottom: 8px;
                 }
                 div[role="radiogroup"] {
                     display: flex;
@@ -85,23 +77,36 @@ def main():
                     align-items: center;
                     gap: 5px;
                     margin: 0;
-                    flex-direction: row-reverse; /* ✅ 버튼을 글자 왼쪽에 배치 */
+                }
+                /* 라디오 버튼을 텍스트 왼쪽에 배치 */
+                div[role="radiogroup"] > div {
+                    flex-direction: row-reverse;
+                }
+                div[role="radiogroup"] > div > label {
+                    padding-left: 0;
                 }
             </style>
             """,
             unsafe_allow_html=True
         )
 
-        # ✅ 네모 틀 안에 버튼 배치 (글자가 왼쪽에 오도록 조정)
+        # 네모 틀 시작
         st.markdown('<div class="radio-container">', unsafe_allow_html=True)
+        
+        # 기간 선택 제목
+        st.markdown('<div class="radio-title">기간 선택</div>', unsafe_allow_html=True)
+        
+        # 라디오 버튼 그룹
         selected_period = st.radio(
-            "기간 선택",
+            "",  # 레이블 제거 (이미 위에 표시함)
             options=["1day", "week", "1month", "1year"],
             index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
             key="radio_selection",
             horizontal=True,
             on_change=update_period
         )
+        
+        # 네모 틀 종료
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
@@ -165,7 +170,3 @@ def main():
                 with st.expander("참고 뉴스 확인"):
                     for doc in result['source_documents']:
                         st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
-
-
-if __name__ == '__main__':
-    main()
