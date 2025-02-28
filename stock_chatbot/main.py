@@ -58,34 +58,49 @@ def main():
     if st.session_state.processComplete and st.session_state.company_name:
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # ✅ "기간 선택" 글씨 크기 조정 (작게)
+        # ✅ 애니메이션 포함한 CSS 스타일 추가
         st.markdown("""
         <style>
-            .small-title {
-                font-size: 14px;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }
+            /* 라디오 버튼 컨테이너 스타일 */
             div[role="radiogroup"] {
                 display: flex;
                 justify-content: center;
-                gap: 15px;
+                gap: 20px;
             }
+
+            /* 버튼 스타일 */
             div[role="radiogroup"] label {
                 display: flex;
                 align-items: center;
-                gap: 5px;
-                flex-direction: row; /* ✅ 버튼이 글자 왼쪽에 위치 */
+                gap: 8px;
+                padding: 10px 15px;
+                border: 2px solid #ddd;
+                border-radius: 20px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease-in-out;
+            }
+
+            /* 선택된 버튼 스타일 */
+            div[role="radiogroup"] input:checked + label {
+                background-color: #ff4757;
+                color: white;
+                border-color: #e84118;
+                transform: scale(1.1);
+            }
+
+            /* 마우스 올렸을 때 (호버 효과) */
+            div[role="radiogroup"] label:hover {
+                background-color: #dcdde1;
+                border-color: #7f8c8d;
             }
         </style>
         """, unsafe_allow_html=True)
 
-        # ✅ "기간 선택" 글씨 크기 조정 후 출력
-        st.markdown('<div class="small-title">기간 선택</div>', unsafe_allow_html=True)
-
-        # ✅ 버튼 배치 (글자 오른쪽, 버튼 왼쪽)
+        # ✅ 버튼 UI
         selected_period = st.radio(
-            "",  # 라벨 제거
+            "기간 선택",
             options=["1day", "week", "1month", "1year"],
             index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
             key="radio_selection",
