@@ -4,7 +4,7 @@ from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
 from stock_data import get_ticker, get_intraday_data_yahoo, get_daily_stock_data_fdr
 from visualization import plot_stock_plotly
 import re
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
@@ -68,10 +68,7 @@ def main():
 
     # 분석 결과가 있으면 상단에 출력
     if st.session_state.processComplete and st.session_state.company_name:
-        # 기업 정보 요약 표시
-        if st.session_state.company_summary:
-            st.markdown(st.session_state.company_summary, unsafe_allow_html=True)
-        # 주가 차트 표시
+       # 주가 차트 표시
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
         # 선택된 기간을 강제 업데이트하여 즉시 반영
@@ -116,6 +113,10 @@ def main():
                     f"📉 {st.session_state.company_name} - 해당 기간({st.session_state.selected_period})의 거래 데이터가 없습니다.")
             else:
                 plot_stock_plotly(df, st.session_state.company_name, st.session_state.selected_period)
+        # 기업 정보 요약 표시
+        if st.session_state.company_summary:
+            st.markdown(st.session_state.company_summary, unsafe_allow_html=True)
+
         # 대화 인터페이스
         if not st.session_state.chat_history:
             st.markdown("""
@@ -129,19 +130,16 @@ def main():
             st.markdown("### 💬 질문과 답변")
 
         # 대화 히스토리 표시
-        for message in st.session_state.chat_history:
-            with st.chat_message(message["role"]):
-                # HTML 형식으로 변환된 마크다운 콘텐츠 표시
-                if message["role"] == "assistant":
-                    st.markdown(message["content"], unsafe_allow_html=True)
-                else:
-                    st.markdown(message["content"])
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            # HTML 형식으로 변환된 마크다운 콘텐츠 표시
+            st.markdown(message["content"], unsafe_allow_html=True)
 
-                # 소스 문서 표시 (응답인 경우에만)
-                if message["role"] == "assistant" and "source_documents" in message:
-                    with st.expander("참고 뉴스 확인"):
-                        for doc in message["source_documents"]:
-                            st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
+            # 소스 문서 표시 (응답인 경우에만)
+            if message["role"] == "assistant" and "source_documents" in message:
+                with st.expander("참고 뉴스 확인"):
+                    for doc in message["source_documents"]:
+                        st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
 
         # 채팅 입력: 사용자가 질문을 입력하면 대화가 이어짐
         if query := st.chat_input("질문을 입력해주세요."):
@@ -255,12 +253,12 @@ def generate_company_summary(company_name, news_data, openai_api_key):
 
         news_analysis = llm.predict(prompt)
 
-        # HTML 강화된 요약 생성
+        # HTML 강화된 요약 생성 (투자 분석 글씨 크기 h3으로 변경)
         summary = f"""
-        # 📊 {company_name} ({ticker_krx}) 투자 분석
+        <h3 style="font-size: 1.5rem;">📊 {company_name} ({ticker_krx}) 투자 분석</h3>
 
-        <div style="background-color: #f0f8ff; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-        <h2>🏢 기업 정보 요약</h2>
+        <div style="background-color: #f0f8ff; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h3>🏢 기업 정보 요약</h3>
         <table style="width: 100%;">
           <tr>
             <td><b>현재 주가:</b></td>
@@ -289,8 +287,8 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         </table>
         </div>
 
-        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 10px;">
-        <h2>📰 최신 뉴스 및 분석</h2>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h3>📰 최신 뉴스 및 분석</h3>
         {news_analysis}
         </div>
         """
@@ -298,8 +296,6 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         return summary
     except Exception as e:
         return f"## {company_name} 정보 분석 중 오류가 발생했습니다: {str(e)}"
-
-
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
 def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     stock_info = {}
