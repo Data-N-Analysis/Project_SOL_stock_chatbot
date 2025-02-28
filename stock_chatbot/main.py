@@ -62,53 +62,41 @@ def main():
         st.markdown(
             """
             <style>
-                .radio-container {
-                    border: 2px solid black;
-                    padding: 10px;
+                .period-container {
+                    border: 2px solid #ccc;
                     border-radius: 10px;
+                    padding: 15px;
                     background-color: #f9f9f9;
-                    width: fit-content;
-                    margin: auto;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
+                    margin-bottom: 15px;
+                    max-width: 600px;
                 }
-                .radio-title {
+                .period-title {
                     font-weight: bold;
-                    margin-bottom: 8px;
+                    margin-bottom: 10px;
+                    font-size: 16px;
+                    text-align: center;
                 }
-                div[role="radiogroup"] {
+                /* 라디오 버튼 컨테이너 및 버튼 스타일링 */
+                div.row-widget.stRadio > div {
                     display: flex;
                     flex-direction: row;
-                    gap: 20px;
+                    justify-content: space-around;
                 }
-                div[role="radiogroup"] label {
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                    margin: 0;
-                }
-                /* 라디오 버튼을 텍스트 왼쪽에 배치 */
-                div[role="radiogroup"] > div {
-                    flex-direction: row-reverse;
-                }
-                div[role="radiogroup"] > div > label {
-                    padding-left: 0;
+                .stRadio label {
+                    font-size: 14px;
                 }
             </style>
             """,
             unsafe_allow_html=True
         )
 
-        # 네모 틀 시작
-        st.markdown('<div class="radio-container">', unsafe_allow_html=True)
+        # 기간 선택을 위한 컨테이너 열기
+        st.markdown('<div class="period-container">', unsafe_allow_html=True)
+        st.markdown('<div class="period-title">기간 선택</div>', unsafe_allow_html=True)
         
-        # 기간 선택 제목
-        st.markdown('<div class="radio-title">기간 선택</div>', unsafe_allow_html=True)
-        
-        # 라디오 버튼 그룹
+        # 컨테이너 내부에 라디오 버튼 배치
         selected_period = st.radio(
-            "",  # 레이블 제거 (이미 위에 표시함)
+            "",  # 라벨 제거
             options=["1day", "week", "1month", "1year"],
             index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
             key="radio_selection",
@@ -116,7 +104,7 @@ def main():
             on_change=update_period
         )
         
-        # 네모 틀 종료
+        # 컨테이너 닫기
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
