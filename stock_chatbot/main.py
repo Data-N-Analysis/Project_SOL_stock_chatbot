@@ -4,6 +4,10 @@ from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
 from stock_data import get_ticker, get_intraday_data_yahoo, get_daily_stock_data_fdr
 from visualization import plot_stock_plotly
 
+def update_period():
+    """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
+    st.session_state.selected_period = st.session_state.radio_selection
+
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
     st.title("기업 정보 분석 QA Chat")
