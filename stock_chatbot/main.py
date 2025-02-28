@@ -170,3 +170,6 @@ def main():
                 with st.expander("참고 뉴스 확인"):
                     for doc in result['source_documents']:
                         st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
+
+if __name__ == '__main__':
+    main()
