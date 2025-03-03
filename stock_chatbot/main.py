@@ -268,6 +268,84 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         # 향상된 주식 정보 수집 함수 사용
         stock_info = get_enhanced_stock_info(ticker_yahoo, ticker_krx)
 
+        # 단위를 추가하기 위한 헬퍼 함수들
+        def add_percent_if_needed(value):
+            """비율 값에 퍼센트 단위가 없으면 추가"""
+            if value == '정보 없음' or value == 'N/A':
+                return value
+
+            # 이미 % 기호가 포함되어 있는지 확인
+            if '%' not in value:
+                # 숫자만 추출
+                import re
+                num_match = re.search(r'[\d,.]+', value)
+                if num_match:
+                    num_str = num_match.group()
+                    try:
+                        # 콤마 제거 후 숫자로 변환
+                        num = float(num_str.replace(',', ''))
+                        return f"{num:.2f}%"
+                    except:
+                        return f"{value}%"
+                else:
+                    return f"{value}%"
+            return value
+
+        def add_won_if_needed(value):
+            """BPS와 같은 값에 원 단위가 없으면 추가"""
+            if value == '정보 없음' or value == 'N/A':
+                return value
+
+            # 이미 '원' 문자가 포함되어 있는지 확인
+            if '원' not in value:
+                # 숫자 형식인지 확인
+                import re
+                num_match = re.search(r'[\d,.]+', value)
+                if num_match:
+                    num_str = num_match.group()
+                    try:
+                        # 콤마 제거 후 숫자로 변환
+                        num = float(num_str.replace(',', ''))
+                        # 천 단위 콤마를 추가한 형식으로 반환
+                        return f"{int(num):,}원"
+                    except:
+                        return f"{value}원"
+                else:
+                    return f"{value}원"
+            return value
+
+        def format_currency_value(value):
+            """당기순이익과 같은 큰 금액에 적절한 단위(억원, 조원) 추가"""
+            if value == '정보 없음' or value == 'N/A':
+                return value
+
+            # 이미 단위가 포함되어 있는지 확인
+            if '억원' in value or '조원' in value or '만원' in value:
+                return value
+
+            # 숫자만 추출
+            import re
+            num_match = re.search(r'[\d,.]+', value)
+            if not num_match:
+                return value
+
+            num_str = num_match.group()
+            try:
+                # 콤마 제거 후 숫자로 변환
+                num = float(num_str.replace(',', ''))
+
+                # 크기에 따라 적절한 단위 적용
+                if abs(num) >= 1_0000_0000_0000:  # 1조 이상
+                    return f"{num / 1_0000_0000_0000:.2f}조원"
+                elif abs(num) >= 1_0000_0000:  # 1억 이상
+                    return f"{num / 1_0000_0000:.2f}억원"
+                elif abs(num) >= 1_0000:  # 1만 이상
+                    return f"{num / 1_0000:.2f}만원"
+                else:
+                    return f"{int(num):,}원"
+            except:
+                return f"{value}원"
+
         # 뉴스 요약 생성
         llm = ChatOpenAI(openai_api_key=openai_api_key, model_name='gpt-4', temperature=0)
 
@@ -336,11 +414,11 @@ def generate_company_summary(company_name, news_data, openai_api_key):
                 </tr>
                 <tr style="background-color: #f8f9fa;">
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>PER (주가수익비율)</strong></td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['per']}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{add_percent_if_needed(stock_info['per'])}</td>
                 </tr>
                 <tr>
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>PBR (주가순자산비율)</strong></td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['pbr']}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{add_percent_if_needed(stock_info['pbr'])}</td>
                 </tr>
                 <tr style="background-color: #f8f9fa;">
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>배당수익률</strong></td>
@@ -348,15 +426,15 @@ def generate_company_summary(company_name, news_data, openai_api_key):
                 </tr>
                 <tr>
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>BPS (주당순자산)</strong></td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['bps']}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{add_won_if_needed(stock_info['bps'])}</td>
                 </tr>
                 <tr style="background-color: #f8f9fa;">
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>부채비율</strong></td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['debt_ratio']}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{add_percent_if_needed(stock_info['debt_ratio'])}</td>
                 </tr>
                 <tr>
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>당기순이익</strong></td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['net_income']}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{format_currency_value(stock_info['net_income'])}</td>
                 </tr>
             </table>
 
@@ -371,7 +449,6 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         return summary_html
     except Exception as e:
         return f"<div style='color: red;'><h2>⚠️ {company_name} 정보 분석 중 오류가 발생했습니다:</h2> <p>{str(e)}</p></div>"
-
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
 def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     """
