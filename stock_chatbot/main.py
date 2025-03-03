@@ -55,6 +55,8 @@ def main():
         if not openai_api_key or not company_name:
             st.info("OpenAI API 키와 기업명을 입력해주세요.")
             st.stop()
+
+        # 새 분석 시작 시 이전 대화 내역 초기화
         st.session_state.chat_history = []
 
         with st.spinner(f"🔍 {company_name}에 대한 정보 수집 중..."):
@@ -63,12 +65,14 @@ def main():
                 st.warning("해당 기업의 최근 뉴스를 찾을 수 없습니다.")
                 st.stop()
 
+        # 분석 결과를 session_state에 저장
         st.session_state.news_data = news_data
         st.session_state.company_name = company_name
 
         text_chunks = get_text_chunks(news_data)
         vectorstore = get_vectorstore(text_chunks)
 
+        # 기업 정보 요약 생성
         st.session_state.conversation = create_chat_chain(vectorstore, openai_api_key)
         st.session_state.company_summary = generate_company_summary(company_name, news_data, openai_api_key)
         st.session_state.processComplete = True
@@ -141,6 +145,7 @@ def main():
             else:
                 df = get_daily_stock_data_fdr(ticker, selected_period)
 
+             # 주식 차트 시각화
             if df.empty:
                 st.warning(f"📉 {st.session_state.company_name} - 해당 기간({st.session_state.selected_period})의 거래 데이터가 없습니다.")
             else:
