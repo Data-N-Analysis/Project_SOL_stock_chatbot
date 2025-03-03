@@ -144,34 +144,37 @@ def main():
                     for doc in message["source_documents"]:
                         st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
 
-        # 채팅 입력: 사용자가 질문을 입력하면 대화가 이어짐
-        if query := st.chat_input("질문을 입력해주세요."):
-            # 사용자 메시지 추가
-            st.session_state.chat_history.append({"role": "user", "content": query})
+            # 채팅 입력: 여기를 명확히 분리
+            if query := st.chat_input("질문을 입력해주세요."):
+                # 사용자 메시지 추가
+                st.session_state.chat_history.append({"role": "user", "content": query})
 
-            # 응답 생성
-            with st.chat_message("assistant"):
-                with st.spinner("분석 중..."):
-                    result = st.session_state.conversation({"question": query})
-                    response = result['answer']
+                # 응답 생성
+                with st.chat_message("assistant"):
+                    with st.spinner("분석 중..."):
+                        try:
+                            result = st.session_state.conversation({"question": query})
+                            response = result['answer']
 
-                    # 응답 강조 및 이모지 추가 처리
-                    response = enhance_llm_response(response)
+                            # 응답 강조 및 이모지 추가 처리
+                            response = enhance_llm_response(response)
 
-                    # 응답 표시 (HTML 허용)
-                    st.markdown(response, unsafe_allow_html=True)
+                            # 응답 표시 (HTML 허용)
+                            st.markdown(response, unsafe_allow_html=True)
 
-                    # 소스 문서 표시
-                    with st.expander("참고 뉴스 확인"):
-                        for doc in result['source_documents']:
-                            st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
+                            # 소스 문서 표시
+                            with st.expander("참고 뉴스 확인"):
+                                for doc in result['source_documents']:
+                                    st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
 
-            # 응답을 대화 히스토리에 추가
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": response,
-                "source_documents": result.get('source_documents', [])
-            })
+                            # 응답을 대화 히스토리에 추가
+                            st.session_state.chat_history.append({
+                                "role": "assistant",
+                                "content": response,
+                                "source_documents": result.get('source_documents', [])
+                            })
+                        except Exception as e:
+                            st.error(f"오류가 발생했습니다: {str(e)}")
 
             # 자동으로 페이지 새로고침 없이 대화 내용 업데이트
             st.rerun()
