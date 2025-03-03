@@ -13,11 +13,11 @@ def get_recent_trading_day():
     Returns:
         str: 최근 거래일(YYYY-MM-DD 형식)
     """
-    today = datetime.datetime.now()
-    if today.hour < 9:  # 9시 이전이면 전날을 기준으로
-        today -= datetime.timedelta(days=1)
-    while today.weekday() in [5, 6]:  # 토요일(5), 일요일(6)이면 하루씩 감소
-        today -= datetime.timedelta(days=1)
+    today = datetime.now()  # ✅ datetime.datetime.now() → datetime.now()
+    if today.hour < 9:  
+        today -= timedelta(days=1)
+    while today.weekday() in [5, 6]:  
+        today -= timedelta(days=1)
     return today.strftime('%Y-%m-%d')
 
 
@@ -122,7 +122,6 @@ def get_daily_stock_data_fdr(ticker, period):
             return pd.DataFrame()
         df = df.reset_index()
         df = df.rename(columns={"Date": "Date", "Close": "Close"})
-        # 주말 데이터 완전 제거
         df["Date"] = pd.to_datetime(df["Date"])
         df = df[df["Date"].dt.weekday < 5].reset_index(drop=True)
         return df
