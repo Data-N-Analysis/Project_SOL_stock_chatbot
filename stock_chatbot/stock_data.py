@@ -41,23 +41,22 @@ def get_ticker(company):
         return None
 
 
-# 📌 네이버 fchart API에서 분봉 데이터 가져오기
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     """
     네이버 금융 Fchart API에서 분봉 데이터를 가져와서 DataFrame으로 변환
     """
     # 📌 현재 시간 가져오기
-    now = datetime.now()  # ✅ 수정됨
+    now = datetime.now()
 
     # 📌 아침 9시 이전이면 전날 데이터 가져오기
     if now.hour < 9:
-        now -= timedelta(days=1)  # ✅ 수정됨 (datetime.timedelta → timedelta)
+        now -= timedelta(days=1)
 
     # 📌 주말이면 금요일 데이터 가져오기
     if now.weekday() == 6:  # 일요일
-        now -= timedelta(days=2)  # ✅ 수정됨
+        now -= timedelta(days=2)  # 금요일로 이동
     elif now.weekday() == 5:  # 토요일
-        now -= timedelta(days=1)  # ✅ 수정됨
+        now -= timedelta(days=1)  # 금요일로 이동
 
     # 📌 기준 날짜 설정 (1 Day 모드일 때만 사용)
     target_date = now.strftime("%Y-%m-%d") if days == 1 else None
@@ -68,7 +67,7 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
 
     if response.status_code != 200:
         return pd.DataFrame()  # 요청 실패 시 빈 데이터 반환
-        
+
     soup = BeautifulSoup(response.text, "lxml")  # ✅ XML 파싱
 
     data_list = []
@@ -81,7 +80,7 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
         if close == "null":
             continue
 
-        time = pd.to_datetime(time, format="%Y%m%d%H%M")
+        time = datetime.strptime(time, "%Y%m%d%H%M")  # ✅ 문자열을 datetime 형식으로 변환
         close = float(close)
 
         # 📌 1 Day 모드일 때만 날짜 필터링
@@ -93,12 +92,12 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
 
     df = pd.DataFrame(data_list, columns=["시간", "종가"])
 
-    # 📌 ✅ 9시 ~ 15시 30분 데이터만 필터링
+    # 📌 ✅ '시간' 컬럼을 datetime 형식으로 변환 (중요)
     df["시간"] = pd.to_datetime(df["시간"])
-    df = df[(df["시간"].dt.time >= datetime.time(9, 0)) & (df["시간"].dt.time <= datetime.time(15, 30))]
 
-    # 📌 X축을 문자형으로 변환 (빈 데이터 없이 연속된 데이터만 표시)
-    df["시간"] = df["시간"].astype(str)
+    # 📌 ✅ 9시 ~ 15시 30분 데이터만 필터링
+    df = df[(df["시간"].dt.time >= datetime.strptime("09:00", "%H:%M").time()) & 
+            (df["시간"].dt.time <= datetime.strptime("15:30", "%H:%M").time())]
 
     return df
 
