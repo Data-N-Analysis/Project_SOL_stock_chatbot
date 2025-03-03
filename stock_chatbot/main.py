@@ -124,11 +124,11 @@ def main():
             components.html(st.session_state.company_summary, height=600, scrolling=True)
 
         # 대화 인터페이스 섹션
-        st.markdown("## 💬 질문과 답변")
+        st.markdown("### 💬 질문과 답변")
 
         # 안내 메시지 표시 - 대화 여부에 관계없이 항상 표시되도록 수정
         st.markdown("""
-        ### 💬 어떤 정보가 궁금하신가요?
+        #### 💬 어떤 정보가 궁금하신가요?
         * 이 기업의 최근 실적은 어떤가요?
         * 현재 주가가 과대평가된 것 같나요?
         * 이 기업의 향후 성장 전망은 어떤가요?
