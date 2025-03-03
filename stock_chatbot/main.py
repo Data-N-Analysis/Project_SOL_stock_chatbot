@@ -7,6 +7,7 @@ import re
 from langchain_community.chat_models import ChatOpenAI
 import yfinance as yf
 import FinanceDataReader as fdr
+import streamlit.components.v1 as components
 
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
