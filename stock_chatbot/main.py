@@ -211,18 +211,16 @@ def enhance_llm_response(text):
     text = re.sub(r'(?m)^4\. ', r'4️⃣ ', text)
     text = re.sub(r'(?m)^5\. ', r'5️⃣ ', text)
 
-    # 중요 키워드 강조
+    # 중요 키워드 강조 - HTML 태그 사용
     text = re.sub(r'(매출액|영업이익|순이익|실적|성장률|시장 점유율)', r'<b>\1</b>', text)
     text = re.sub(r'(급등|급락|상승|하락|성장|감소|인수|합병|계약|협약)', r'<b>\1</b>', text)
 
     # 투자 관련 키워드에 색상 강조
     text = re.sub(r'(매수|매도|추천|중립|보유)',
-                  lambda
-                      m: f'<span style="color:{"green" if m.group(1) in ["매수", "추천"] else "red" if m.group(1) == "매도" else "orange"}; font-weight:bold;">{m.group(1)}</span>',
+                  lambda m: f'<span style="color:{"green" if m.group(1) in ["매수", "추천"] else "red" if m.group(1) == "매도" else "orange"}; font-weight:bold;">{m.group(1)}</span>',
                   text)
 
     return text
-
 
 def generate_company_summary(company_name, news_data, openai_api_key):
     try:
@@ -248,37 +246,86 @@ def generate_company_summary(company_name, news_data, openai_api_key):
 
         {all_news_text}
 
-        다음 형식으로 응답해주세요:
-        1. 최신 동향: 통합적으로 정리된 최근 기업 핵심 동향 정보 3-5가지 (각 동향은 번호로 구분하고, 관련된 뉴스 출처 링크를 괄호 안에 포함)
-        2. 투자에 영향을 미칠 수 있는 긍정적 요인과 부정적 요인
-        3. 전반적인 투자 전망 및 조언
-        """
+        HTML 형식으로 응답해주세요:
+        <div>
+            <h4>최신 동향</h4>
+            <ol>
+                <li>[동향 내용 1] (출처: <a href="뉴스링크">출처명</a>)</li>
+                <li>[동향 내용 2] (출처: <a href="뉴스링크">출처명</a>)</li>
+                <!-- 3-5개 항목 -->
+            </ol>
 
+            <h4>투자 영향 요인</h4>
+            <div>
+                <h5 style="color: green;">✅ 긍정적 요인</h5>
+                <ul>
+                    <li>[긍정적 요인 1]</li>
+                    <!-- 2-3개 항목 -->
+                </ul>
+
+                <h5 style="color: red;">⚠️ 부정적 요인</h5>
+                <ul>
+                    <li>[부정적 요인 1]</li>
+                    <!-- 2-3개 항목 -->
+                </ul>
+            </div>
+
+            <h4>💹 투자 전망 및 조언</h4>
+            <p>[투자 전망 및 조언 내용]</p>
+        </div>
+        """
         news_analysis = llm.predict(prompt)
 
         # Markdown 형식으로 요약 생성
-        summary = f"""
-        ## 📊 {company_name} ({ticker_krx}) 투자 분석
+        # Instead of returning markdown, return HTML:
+        summary_html = f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #1f77b4;">📊 {company_name} ({ticker_krx}) 투자 분석</h2>
 
-        ### 🏢 기업 정보 요약
+            <h3 style="color: #2c3e50;">🏢 기업 정보 요약</h3>
 
-        | 항목 | 정보 |
-        | --- | --- |
-        | **현재 주가** | {stock_info['current_price']} {stock_info['price_change_str'].replace('<span', '*').replace('</span>', '*')} |
-        | **52주 최고/최저** | {stock_info['year_high']} / {stock_info['year_low']} |
-        | **시가총액** | {stock_info['market_cap_str']} |
-        | **PER (주가수익비율)** | {stock_info['per']} |
-        | **PBR (주가순자산비율)** | {stock_info['pbr']} |
-        | **배당수익률** | {stock_info['dividend_yield']} |
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <tr style="background-color: #f8f9fa;">
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">항목</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">정보</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>현재 주가</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['current_price']} {stock_info['price_change_str']}</td>
+                </tr>
+                <tr style="background-color: #f8f9fa;">
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>52주 최고/최저</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['year_high']} / {stock_info['year_low']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>시가총액</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['market_cap_str']}</td>
+                </tr>
+                <tr style="background-color: #f8f9fa;">
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>PER (주가수익비율)</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['per']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>PBR (주가순자산비율)</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['pbr']}</td>
+                </tr>
+                <tr style="background-color: #f8f9fa;">
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>배당수익률</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['dividend_yield']}</td>
+                </tr>
+            </table>
 
-        ### 📰 최신 뉴스 및 분석
+            <h3 style="color: #2c3e50;">📰 최신 뉴스 및 분석</h3>
 
-        {news_analysis}
+            <div style="line-height: 1.6;">
+                {news_analysis.replace('\n', '<br>').replace('1. ', '<br>1. ').replace('2. ', '<br>2. ').replace('3. ', '<br>3. ')}
+            </div>
+        </div>
         """
 
-        return summary
+        return summary_html
     except Exception as e:
-        return f"## {company_name} 정보 분석 중 오류가 발생했습니다: {str(e)}"
+        return f"<div style='color: red;'><h2>⚠️ {company_name} 정보 분석 중 오류가 발생했습니다:</h2> <p>{str(e)}</p></div>"
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
 def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     stock_info = {}
