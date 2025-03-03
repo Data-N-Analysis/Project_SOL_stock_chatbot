@@ -4,7 +4,7 @@ import FinanceDataReader as fdr
 from datetime import datetime, timedelta
 import streamlit as st
 import requests
-import BeautifulSoup
+from bs4 import BeautifulSoup
 
 def get_recent_trading_day():
     """
