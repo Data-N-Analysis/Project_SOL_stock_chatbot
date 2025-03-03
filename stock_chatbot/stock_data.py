@@ -3,6 +3,8 @@ import yfinance as yf
 import FinanceDataReader as fdr
 from datetime import datetime, timedelta
 import streamlit as st
+import requests
+import BeautifulSoup
 
 def get_recent_trading_day():
     """
