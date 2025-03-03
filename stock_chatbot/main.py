@@ -529,9 +529,6 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     return stock_info
 
 
-
-
-
 def get_stock_info_naver(ticker_krx):
     """
     네이버 금융에서 특정 종목의 주요 재무 지표를 크롤링하여 반환
@@ -542,8 +539,13 @@ def get_stock_info_naver(ticker_krx):
     Returns:
         dict: 주식 정보 딕셔너리 또는 None (실패 시)
     """
-    ticker_krx = int(ticker_krx)
-    url = f"https://finance.naver.com/item/main.naver?code={ticker_krx}"  # URL 수정: main.nhn -> main.naver
+    # 티커 형식 처리 (문자열 확인)
+    if isinstance(ticker_krx, str) and not ticker_krx.isdigit():
+        print(f"잘못된 티커 형식: {ticker_krx}")
+        return None
+
+    ticker_krx = str(ticker_krx).zfill(6)  # 6자리 숫자로 포맷팅
+    url = f"https://finance.naver.com/item/main.naver?code={ticker_krx}"
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
@@ -557,120 +559,142 @@ def get_stock_info_naver(ticker_krx):
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # 현재 주가
-        current_price = "N/A"
+        # 결과 저장 딕셔너리 초기화
+        result = {
+            "현재가": "N/A",
+            "PER": "N/A",
+            "PBR": "N/A",
+            "52주 최고": "N/A",
+            "52주 최저": "N/A",
+            "시가총액": "N/A",
+            "BPS": "N/A",
+            "배당수익률": "N/A",
+            "부채비율": "N/A",
+            "당기순이익": "N/A"
+        }
+
+        # 1. 현재가 추출 - 개선된 방식
         try:
-            # 현재가 요소 찾기
-            today_element = soup.select_one("div.today")
-            if today_element:
-                blind_element = today_element.select_one("span.blind")
-                if blind_element:
-                    current_price = blind_element.text.strip()
-                    current_price = f"{int(current_price.replace(',', '')):,}원"
+            current_price_area = soup.select_one(".new_totalinfo .no_today .no_up .no_down span.blind")
+            if current_price_area:
+                result["현재가"] = f"{int(current_price_area.text.replace(',', '')):,}원"
+            else:
+                # 대체 방법 시도
+                today_element = soup.select_one(".today")
+                if today_element:
+                    blind_price = today_element.select_one("span.blind")
+                    if blind_price:
+                        result["현재가"] = f"{int(blind_price.text.replace(',', '')):,}원"
         except Exception as e:
             print(f"현재가 추출 오류: {e}")
 
-        # PER, PBR 추출
-        per, pbr = "N/A", "N/A"
+        # 2. 시가총액 추출 - 개선된 방식
         try:
-            # 투자지표 테이블 찾기
-            tables = soup.select("table.tb_type1")
-            for table in tables:
-                # PER 찾기
-                per_td = table.find("td", text=lambda t: t and "PER" in t)
-                if per_td:
-                    per_value = per_td.find_next_sibling("td")
-                    if per_value:
-                        per = per_value.text.strip()
-
-                # PBR 찾기
-                pbr_td = table.find("td", text=lambda t: t and "PBR" in t)
-                if pbr_td:
-                    pbr_value = pbr_td.find_next_sibling("td")
-                    if pbr_value:
-                        pbr = pbr_value.text.strip()
-        except Exception as e:
-            print(f"PER/PBR 추출 오류: {e}")
-
-        # 시가총액
-        market_cap = "N/A"
-        try:
-            # 시가총액 요소 찾기
-            market_cap_element = soup.select_one("div.first table tbody tr td em")
-            if market_cap_element and "시가총액" in market_cap_element.text:
-                market_cap_value = market_cap_element.parent.find_next_sibling("td")
-                if market_cap_value:
-                    market_cap = market_cap_value.text.strip()
+            market_cap_elem = soup.select_one(".first .line_dot")
+            if market_cap_elem:
+                cap_text = market_cap_elem.text.strip()
+                # "시가총액" 텍스트가 포함된 요소 찾기
+                if "시가총액" in cap_text:
+                    # 시가총액 값 추출
+                    cap_value = cap_text.split('\n')[-1].strip()
+                    result["시가총액"] = cap_value
         except Exception as e:
             print(f"시가총액 추출 오류: {e}")
 
-        # 52주 최고/최저
-        high_52, low_52 = "N/A", "N/A"
+        # 3. 52주 최고/최저
         try:
-            # 52주 최고/최저 요소 찾기
-            for item in soup.select("table.no_info td"):
-                if "52주 최고" in item.text:
-                    high_element = item.find("span", class_="blind")
-                    if high_element:
-                        high_52 = high_element.text.strip()
-                        high_52 = f"{int(high_52.replace(',', '')):,}원"
-                if "52주 최저" in item.text:
-                    low_element = item.find("span", class_="blind")
-                    if low_element:
-                        low_52 = low_element.text.strip()
-                        low_52 = f"{int(low_52.replace(',', '')):,}원"
+            # 52주 최고/최저 테이블 찾기 (더 정확한 선택자 사용)
+            highest_lowest = soup.select(".no_info tbody tr td")
+
+            for td in highest_lowest:
+                if "52주 최고" in td.text:
+                    high_value = td.select_one("span.blind")
+                    if high_value:
+                        result["52주 최고"] = f"{int(high_value.text.replace(',', '')):,}원"
+
+                if "52주 최저" in td.text:
+                    low_value = td.select_one("span.blind")
+                    if low_value:
+                        result["52주 최저"] = f"{int(low_value.text.replace(',', '')):,}원"
         except Exception as e:
             print(f"52주 최고/최저 추출 오류: {e}")
 
-        # 나머지 지표 추출
-        div_yield, bps, debt_ratio, net_income = "N/A", "N/A", "N/A", "N/A"
+        # 4. 투자지표 테이블에서 PER, PBR, BPS 등 추출 - 개선된 방식
         try:
+            # 테이블에서 th와 em 태그를 함께 검사
             for table in soup.select("table.tb_type1"):
-                # 배당수익률 찾기
-                div_td = table.find("em", text=lambda t: t and "배당수익률" in t)
-                if div_td:
-                    div_value = div_td.parent.find_next_sibling("td")
-                    if div_value:
-                        div_yield = div_value.text.strip()
+                rows = table.select("tr")
+                for row in rows:
+                    cells = row.select("th, td")
+                    for i, cell in enumerate(cells):
+                        cell_text = cell.text.strip()
 
-                # BPS 찾기
-                bps_td = table.find("em", text=lambda t: t and "BPS" in t)
-                if bps_td:
-                    bps_value = bps_td.parent.find_next_sibling("td")
-                    if bps_value:
-                        bps = bps_value.text.strip()
+                        # PER 추출
+                        if "PER" in cell_text and i + 1 < len(cells):
+                            result["PER"] = cells[i + 1].text.strip()
 
-                # 부채비율 찾기
-                debt_td = table.find("em", text=lambda t: t and "부채비율" in t)
-                if debt_td:
-                    debt_value = debt_td.parent.find_next_sibling("td")
-                    if debt_value:
-                        debt_ratio = debt_value.text.strip()
+                        # PBR 추출
+                        if "PBR" in cell_text and i + 1 < len(cells):
+                            result["PBR"] = cells[i + 1].text.strip()
 
-                # 당기순이익 찾기
-                income_td = table.find("em", text=lambda t: t and "당기순이익" in t)
-                if income_td:
-                    income_value = income_td.parent.find_next_sibling("td")
-                    if income_value:
-                        net_income = income_value.text.strip()
+                        # BPS 추출
+                        if "BPS" in cell_text and i + 1 < len(cells):
+                            result["BPS"] = cells[i + 1].text.strip()
+
+                        # 배당수익률 추출
+                        if "배당수익률" in cell_text and i + 1 < len(cells):
+                            result["배당수익률"] = cells[i + 1].text.strip()
+
+            # em 태그를 통한 추가 검색
+            for table in soup.select("table.tb_type1"):
+                for em in table.select("em"):
+                    em_text = em.text.strip()
+
+                    # 각 지표별 검색
+                    if "부채비율" in em_text:
+                        td = em.find_parent("th").find_next_sibling("td")
+                        if td:
+                            result["부채비율"] = td.text.strip()
+
+                    if "당기순이익" in em_text:
+                        td = em.find_parent("th").find_next_sibling("td")
+                        if td:
+                            result["당기순이익"] = td.text.strip()
         except Exception as e:
-            print(f"기타 지표 추출 오류: {e}")
+            print(f"투자지표 추출 오류: {e}")
+
+        # 5. 재무제표 섹션에서 추가 정보 추출
+        try:
+            # 재무제표 섹션 찾기
+            finance_summary = soup.select("#content .section.cop_analysis")
+            if finance_summary:
+                # 테이블 내 모든 행 검사
+                rows = finance_summary[0].select("table.tb_type1 tbody tr")
+                for row in rows:
+                    # 각 행의 셀 텍스트 확인
+                    th = row.select_one("th")
+                    if th:
+                        th_text = th.text.strip()
+
+                        # 부채비율 찾기
+                        if "부채비율" in th_text and result["부채비율"] == "N/A":
+                            td = row.select_one("td")
+                            if td:
+                                result["부채비율"] = td.text.strip()
+
+                        # 당기순이익 찾기
+                        if "당기순이익" in th_text and result["당기순이익"] == "N/A":
+                            td = row.select_one("td")
+                            if td:
+                                result["당기순이익"] = td.text.strip()
+        except Exception as e:
+            print(f"재무제표 추출 오류: {e}")
 
         # 디버깅 출력
-        print(f"크롤링 결과: 현재가={current_price}, PER={per}, PBR={pbr}")
+        print(f"크롤링 결과: 현재가={result['현재가']}, PER={result['PER']}, PBR={result['PBR']}")
+        print(f"부채비율={result['부채비율']}, 당기순이익={result['당기순이익']}")
 
-        return {
-            "현재가": current_price,
-            "PER": per,
-            "PBR": pbr,
-            "52주 최고": high_52,
-            "52주 최저": low_52,
-            "시가총액": market_cap,
-            "BPS": bps,
-            "배당수익률": div_yield,
-            "부채비율": debt_ratio,
-            "당기순이익": net_income
-        }
+        return result
 
     except Exception as e:
         print(f"네이버 금융 크롤링 중 오류 발생: {e}")
