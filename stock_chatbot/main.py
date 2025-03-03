@@ -124,17 +124,16 @@ def main():
             components.html(st.session_state.company_summary, height=600, scrolling=True)
 
         # 대화 인터페이스 섹션
-        st.markdown("### 💬 질문과 답변")
+        st.markdown("## 💬 질문과 답변")
 
-        # 대화가 없는 경우 안내 메시지 표시
-        if not st.session_state.chat_history:
-            st.markdown("""
-            ### 💬 어떤 정보가 궁금하신가요?
-            * 이 기업의 최근 실적은 어떤가요?
-            * 현재 주가가 과대평가된 것 같나요?
-            * 이 기업의 향후 성장 전망은 어떤가요?
-            * 현재 시장 상황에서 투자 전략을 조언해주세요.
-            """)
+        # 안내 메시지 표시 - 대화 여부에 관계없이 항상 표시되도록 수정
+        st.markdown("""
+        ### 💬 어떤 정보가 궁금하신가요?
+        * 이 기업의 최근 실적은 어떤가요?
+        * 현재 주가가 과대평가된 것 같나요?
+        * 이 기업의 향후 성장 전망은 어떤가요?
+        * 현재 시장 상황에서 투자 전략을 조언해주세요.
+        """)
 
         # 대화 히스토리 표시
         for message in st.session_state.chat_history:
@@ -212,6 +211,10 @@ def enhance_llm_response(text):
                       m: f'<span style="color:{"green" if m.group(1) in ["매수", "추천"] else "red" if m.group(1) == "매도" else "orange"}; font-weight:bold;">{m.group(1)}</span>',
                   text)
 
+    # 제목과 내용 사이 줄간격 조정 (제목과 내용 사이에 간격 추가)
+    text = re.sub(r'(## .+?)(\n)', r'\1\n\n', text)
+    text = re.sub(r'(### .+?)(\n)', r'\1\n\n', text)
+
     return text
 
 
@@ -243,8 +246,8 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         <div>
             <h4>최신 동향</h4>
             <ol>
-                <li>[동향 내용 1] (출처: <a href="뉴스링크">출처명</a>)</li>
-                <li>[동향 내용 2] (출처: <a href="뉴스링크">출처명</a>)</li>
+                <li>[동향 내용 1] (출처: <a href="뉴스링크" target="_blank">출처명</a>)</li>
+                <li>[동향 내용 2] (출처: <a href="뉴스링크" target="_blank">출처명</a>)</li>
                 <!-- 4-7개 항목 -->
             </ol>
 
@@ -273,11 +276,11 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         # Instead of returning markdown, return HTML:
         summary_html = f"""
         <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2 style="color: #1f77b4;">📊 {company_name} ({ticker_krx}) 투자 분석</h2>
+            <h2 style="color: #1f77b4; margin-bottom: 20px;">📊 {company_name} ({ticker_krx}) 투자 분석</h2>
 
-            <h3 style="color: #2c3e50;">🏢 기업 정보 요약</h3>
+            <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">🏢 기업 정보 요약</h3>
 
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
                 <tr style="background-color: #f8f9fa;">
                     <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">항목</th>
                     <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">정보</th>
@@ -308,7 +311,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
                 </tr>
             </table>
 
-            <h3 style="color: #2c3e50;">📰 최신 뉴스 및 분석</h3>
+            <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">📰 최신 뉴스 및 분석</h3>
 
             <div style="line-height: 1.6;">
                 {news_analysis.replace('\n', '<br>').replace('1. ', '<br>1. ').replace('2. ', '<br>2. ').replace('3. ', '<br>3. ')}
