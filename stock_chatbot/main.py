@@ -1,19 +1,22 @@
 import streamlit as st
 from news_crawler import crawl_news
 from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
-from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr
+from stock_data import get_ticker, get_intraday_data_yahoo, get_daily_stock_data_fdr
 from visualization import plot_stock_plotly
 import re
 from langchain_community.chat_models import ChatOpenAI
+import yfinance as yf
 import FinanceDataReader as fdr
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 import requests
 from bs4 import BeautifulSoup
 
+
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
     st.session_state.selected_period = st.session_state.radio_selection
+
 
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
@@ -49,13 +52,11 @@ def main():
             unsafe_allow_html=True
         )
 
-
     # 분석 시작 버튼 클릭 시
     if process:
         if not openai_api_key or not company_name:
             st.info("OpenAI API 키와 기업명을 입력해주세요.")
             st.stop()
-
         # 새 분석 시작 시 이전 대화 내역 초기화
         st.session_state.chat_history = []
 
@@ -72,13 +73,16 @@ def main():
         text_chunks = get_text_chunks(news_data)
         vectorstore = get_vectorstore(text_chunks)
 
-        # 기업 정보 요약 생성
         st.session_state.conversation = create_chat_chain(vectorstore, openai_api_key)
+
+        # 기업 정보 요약 생성
         st.session_state.company_summary = generate_company_summary(company_name, news_data, openai_api_key)
+
         st.session_state.processComplete = True
 
-    # 분석 결과 출력
+    # 분석 결과가 있으면 상단에 출력
     if st.session_state.processComplete and st.session_state.company_name:
+        # 주가 차트 표시
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
         # ✅ 애니메이션 포함한 CSS 스타일 추가 (기간 선택 글씨 제거)
@@ -135,22 +139,32 @@ def main():
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
         with st.spinner(f"📊 {st.session_state.company_name} ({st.session_state.selected_period}) 데이터 불러오는 중..."):
-            ticker = get_ticker(st.session_state.company_name)
-            if not ticker:
-                st.error("해당 기업의 티커 코드를 찾을 수 없습니다.")
-                return
-
+            # 주식 데이터 가져오기
             if selected_period in ["1day", "week"]:
-                df = get_naver_fchart_minute_data(ticker, "1" if selected_period == "1day" else "5", 1 if selected_period == "1day" else 7)
-            else:
-                df = get_daily_stock_data_fdr(ticker, selected_period)
+                ticker = get_ticker(st.session_state.company_name, source="yahoo")
 
-             # 주식 차트 시각화
+                if not ticker:
+                    st.error("해당 기업의 야후 파이낸스 티커 코드를 찾을 수 없습니다.")
+                    return
+
+                interval = "1m" if st.session_state.selected_period == "1day" else "5m"
+                df = get_intraday_data_yahoo(ticker,
+                                             period="5d" if st.session_state.selected_period == "week" else "1d",
+                                             interval=interval)
+            else:
+                ticker = get_ticker(st.session_state.company_name, source="fdr")
+                if not ticker:
+                    st.error("해당 기업의 FinanceDataReader 티커 코드를 찾을 수 없습니다.")
+                    return
+
+                df = get_daily_stock_data_fdr(ticker, st.session_state.selected_period)
+
+            # 주식 차트 시각화
             if df.empty:
-                st.warning(f"📉 {st.session_state.company_name} - 해당 기간({st.session_state.selected_period})의 거래 데이터가 없습니다.")
+                st.warning(
+                    f"📉 {st.session_state.company_name} - 해당 기간({st.session_state.selected_period})의 거래 데이터가 없습니다.")
             else:
                 plot_stock_plotly(df, st.session_state.company_name, st.session_state.selected_period)
-                
         # 기업 정보 요약은 차트 이후에 표시
         if st.session_state.company_summary:
             # st.markdown 대신 components.html 사용
@@ -254,7 +268,7 @@ def enhance_llm_response(text):
 def generate_company_summary(company_name, news_data, openai_api_key):
     try:
         # 기업 정보 수집
-        ticker_krx = get_ticker(company_name)
+        ticker_krx = get_ticker(company_name, source="fdr")
         if not ticker_krx:
             return f"## {company_name}에 대한 정보를 찾을 수 없습니다."
 
@@ -367,7 +381,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
                     <li>[긍정적 요인 1]</li>
                     <!-- 2-3개 항목 -->
                 </ul>
-                
+
                 <h5 style="color: red; font-size: 17px; margin-bottom: 0;">⚠️ 부정적 요인</h5>
                 <ul style="margin-top: 5px;">
                     <li>[부정적 요인 1]</li>
@@ -380,7 +394,6 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         </div>
         """
         news_analysis = llm.predict(prompt)
-
 
         # 새로운 HTML 템플릿으로 업데이트 (추가 정보 포함)
         summary_html = f"""
@@ -445,9 +458,6 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         return f"<div style='color: red;'><h2>⚠️ {company_name} 정보 분석 중 오류가 발생했습니다:</h2> <p>{str(e)}</p></div>"
 
 
-
-
-
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
 def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     """
@@ -463,14 +473,16 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     stock_info = {}
 
     try:
+        # 1. yfinance 사용
+        yf_info = yf.Ticker(ticker_yahoo).info
 
-        # 1. FinanceDataReader 사용 (한국 주식 정보)
+        # 2. FinanceDataReader 사용 (한국 주식 정보)
         fdr_info = get_fdr_stock_info(ticker_krx)
 
-        # 2. 네이버 금융 웹 크롤링 사용
+        # 3. 네이버 금융 웹 크롤링 사용
         naver_info = get_stock_info_naver(ticker_krx)
 
-        # 통합하여 저장 (두 소스의 결과 병합, 우선순위: 네이버 > FinanceDataReader)
+        # 통합하여 저장 (세 소스의 결과 병합, 우선순위: 네이버 > yfinance > FinanceDataReader)
 
         # 현재 주가 설정
         if naver_info and naver_info.get('현재가') and naver_info.get('현재가') != 'N/A':
@@ -851,5 +863,7 @@ def get_fdr_stock_info(ticker_krx):
     except Exception as e:
         print(f"FDR 데이터 가져오기 오류: {e}")
         return stock_info  # 기본값 반환
+
+
 if __name__ == '__main__':
     main()
