@@ -288,25 +288,26 @@ def generate_company_summary(company_name, news_data, openai_api_key):
                 <!-- 4-7개 항목 -->
             </ol>
 
+        <div>
             <h4 style="font-size: 21px; margin-top: 3em;">투자 영향 요인</h4>
             <div style="font-size: 14px;">
-                <h5 style="color: green; font-size: 14px;">✅ 긍정적 요인</h5>
-                <ul>
-                    <li>[긍정적 요인 1]</li>
-                    <!-- 2-3개 항목 -->
-                </ul>
-
-                <h5 style="color: red; font-size: 14px;">⚠️ 부정적 요인</h5>
-                <ul>
-                    <li>[부정적 요인 1]</li>
-                    <!-- 2-3개 항목 -->
-                </ul>
+                    <h5 style="color: green; font-size: 14px;">✅ 긍정적 요인</h5>
+                    <ul>
+                        <li>[긍정적 요인 1]</li>
+                        <!-- 2-3개 항목 -->
+                    </ul>
+                    <h5 style="color: red; font-size: 14px;">⚠️ 부정적 요인</h5>
+                    <ul>
+                        <li>[부정적 요인 1]</li>
+                        <!-- 2-3개 항목 -->
+                    </ul>
             </div>
-
-            <h4 style="font-size: 21px; margin-top: 3em;">💹 투자 전망 및 조언</h4>
+        
+            <h4 style="font-size: 21px; margin-top: 1.5em;">💹 투자 전망 및 조언</h4>
             <p style="font-size: 14px;">[투자 전망 및 조언 내용]</p>
         </div>
         """
+
         news_analysis = llm.predict(prompt)
 
         # 응답 형식 수정
