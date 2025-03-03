@@ -4,6 +4,7 @@ import datetime
 import FinanceDataReader as fdr
 from datetime import datetime, timedelta
 import streamlit as st
+import requests
 
 # 📌 가장 최근 거래일을 구하는 함수
 def get_recent_trading_day():
