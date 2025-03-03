@@ -176,8 +176,8 @@ def main():
                         except Exception as e:
                             st.error(f"오류가 발생했습니다: {str(e)}")
 
-            # 자동으로 페이지 새로고침 없이 대화 내용 업데이트
-            st.rerun()
+                # 자동으로 페이지 새로고침 없이 대화 내용 업데이트
+                st.rerun()
 
 
     #     st.markdown("최근 기업 뉴스 목록을 보려면 누르시오")
