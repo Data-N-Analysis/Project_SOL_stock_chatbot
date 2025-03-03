@@ -7,7 +7,9 @@ import re
 from langchain_community.chat_models import ChatOpenAI
 import yfinance as yf
 import FinanceDataReader as fdr
+from datetime import datetime, timedelta
 import streamlit.components.v1 as components
+
 
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
@@ -71,7 +73,7 @@ def main():
 
     # 분석 결과가 있으면 상단에 출력
     if st.session_state.processComplete and st.session_state.company_name:
-       # 주가 차트 표시
+        # 주가 차트 표시
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
         # 선택된 기간을 강제 업데이트하여 즉시 반영
@@ -120,7 +122,11 @@ def main():
         if st.session_state.company_summary:
             # st.markdown 대신 components.html 사용
             components.html(st.session_state.company_summary, height=600, scrolling=True)
-        # 대화 인터페이스
+
+        # 대화 인터페이스 섹션
+        st.markdown("### 💬 질문과 답변")
+
+        # 대화가 없는 경우 안내 메시지 표시
         if not st.session_state.chat_history:
             st.markdown("""
             ### 💬 어떤 정보가 궁금하신가요?
@@ -129,23 +135,23 @@ def main():
             * 이 기업의 향후 성장 전망은 어떤가요?
             * 현재 시장 상황에서 투자 전략을 조언해주세요.
             """)
-        else:
-            st.markdown("### 💬 질문과 답변")
 
         # 대화 히스토리 표시
-    for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
-            # HTML 형식으로 변환된 마크다운 콘텐츠 표시
-            st.markdown(message["content"], unsafe_allow_html=True)
+        for message in st.session_state.chat_history:
+            with st.chat_message(message["role"]):
+                # HTML 형식으로 변환된 마크다운 콘텐츠 표시
+                st.markdown(message["content"], unsafe_allow_html=True)
 
-            # 소스 문서 표시 (응답인 경우에만)
-            if message["role"] == "assistant" and "source_documents" in message:
-                with st.expander("참고 뉴스 확인"):
-                    for doc in message["source_documents"]:
-                        st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
+                # 소스 문서 표시 (응답인 경우에만)
+                if message["role"] == "assistant" and "source_documents" in message:
+                    with st.expander("참고 뉴스 확인"):
+                        for doc in message["source_documents"]:
+                            st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
 
-            # 채팅 입력: 여기를 명확히 분리
-            if query := st.chat_input("질문을 입력해주세요."):
+        # 채팅 입력 - 루프 밖으로 이동
+        if st.session_state.processComplete:  # 분석이 완료된 경우에만 입력창 표시
+            query = st.chat_input("질문을 입력해주세요.")
+            if query:
                 # 사용자 메시지 추가
                 st.session_state.chat_history.append({"role": "user", "content": query})
 
@@ -180,24 +186,6 @@ def main():
                 st.rerun()
 
 
-    #     st.markdown("최근 기업 뉴스 목록을 보려면 누르시오")
-    #
-    # # 뉴스 목록 표시
-    # if st.session_state.processComplete:
-    #     with st.expander("뉴스 보기"):
-    #         news_data = st.session_state.news_data
-    #
-    #         # 처음 10개 뉴스만 표시
-    #         for i, news in enumerate(news_data[:10]):
-    #             st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
-    #
-    #         # '더보기' 버튼 클릭 시 나머지 뉴스 표시
-    #         if len(news_data) > 10:
-    #             if st.button('더보기', key="show_more"):
-    #                 for news in news_data[10:]:
-    #                     st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
-
-
 # LLM 응답 강화 함수 (이모지, 강조 등 추가)
 def enhance_llm_response(text):
     # 섹션 제목에 이모지 추가
@@ -220,10 +208,12 @@ def enhance_llm_response(text):
 
     # 투자 관련 키워드에 색상 강조
     text = re.sub(r'(매수|매도|추천|중립|보유)',
-                  lambda m: f'<span style="color:{"green" if m.group(1) in ["매수", "추천"] else "red" if m.group(1) == "매도" else "orange"}; font-weight:bold;">{m.group(1)}</span>',
+                  lambda
+                      m: f'<span style="color:{"green" if m.group(1) in ["매수", "추천"] else "red" if m.group(1) == "매도" else "orange"}; font-weight:bold;">{m.group(1)}</span>',
                   text)
 
     return text
+
 
 def generate_company_summary(company_name, news_data, openai_api_key):
     try:
@@ -329,6 +319,8 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         return summary_html
     except Exception as e:
         return f"<div style='color: red;'><h2>⚠️ {company_name} 정보 분석 중 오류가 발생했습니다:</h2> <p>{str(e)}</p></div>"
+
+
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
 def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     stock_info = {}
@@ -506,6 +498,7 @@ def get_fdr_stock_info(ticker_krx):
             'dividend_yield': '정보 없음',
             'market_cap': '정보 없음'
         }
+
 
 if __name__ == '__main__':
     main()
