@@ -177,22 +177,22 @@ def main():
             st.rerun()
 
 
-        st.markdown("최근 기업 뉴스 목록을 보려면 누르시오")
-
-    # 뉴스 목록 표시
-    if st.session_state.processComplete:
-        with st.expander("뉴스 보기"):
-            news_data = st.session_state.news_data
-
-            # 처음 10개 뉴스만 표시
-            for i, news in enumerate(news_data[:10]):
-                st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
-
-            # '더보기' 버튼 클릭 시 나머지 뉴스 표시
-            if len(news_data) > 10:
-                if st.button('더보기', key="show_more"):
-                    for news in news_data[10:]:
-                        st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
+    #     st.markdown("최근 기업 뉴스 목록을 보려면 누르시오")
+    #
+    # # 뉴스 목록 표시
+    # if st.session_state.processComplete:
+    #     with st.expander("뉴스 보기"):
+    #         news_data = st.session_state.news_data
+    #
+    #         # 처음 10개 뉴스만 표시
+    #         for i, news in enumerate(news_data[:10]):
+    #             st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
+    #
+    #         # '더보기' 버튼 클릭 시 나머지 뉴스 표시
+    #         if len(news_data) > 10:
+    #             if st.button('더보기', key="show_more"):
+    #                 for news in news_data[10:]:
+    #                     st.markdown(f"- **{news['title']}** ([링크]({news['link']}))")
 
 
 # LLM 응답 강화 함수 (이모지, 강조 등 추가)
@@ -252,7 +252,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
             <ol>
                 <li>[동향 내용 1] (출처: <a href="뉴스링크">출처명</a>)</li>
                 <li>[동향 내용 2] (출처: <a href="뉴스링크">출처명</a>)</li>
-                <!-- 3-5개 항목 -->
+                <!-- 4-7개 항목 -->
             </ol>
 
             <h4>투자 영향 요인</h4>
