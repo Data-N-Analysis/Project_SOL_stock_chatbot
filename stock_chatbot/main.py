@@ -5,6 +5,8 @@ from stock_data import get_ticker, get_intraday_data_yahoo, get_daily_stock_data
 from visualization import plot_stock_plotly
 import re
 from langchain_community.chat_models import ChatOpenAI
+import yfinance as yf
+import FinanceDataReader as fdr
 
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
@@ -19,7 +21,7 @@ def main():
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
-        st.session_state.chat_history = None
+        st.session_state.chat_history = []
     if "processComplete" not in st.session_state:
         st.session_state.processComplete = False
     if "news_data" not in st.session_state:
@@ -113,10 +115,10 @@ def main():
                     f"📉 {st.session_state.company_name} - 해당 기간({st.session_state.selected_period})의 거래 데이터가 없습니다.")
             else:
                 plot_stock_plotly(df, st.session_state.company_name, st.session_state.selected_period)
-        # 기업 정보 요약 표시
+        # 기업 정보 요약은 차트 이후에 표시
         if st.session_state.company_summary:
-            st.markdown(st.session_state.company_summary, unsafe_allow_html=True)
-
+            # st.markdown 대신 components.html 사용
+            components.html(st.session_state.company_summary, height=600, scrolling=True)
         # 대화 인터페이스
         if not st.session_state.chat_history:
             st.markdown("""
@@ -253,44 +255,24 @@ def generate_company_summary(company_name, news_data, openai_api_key):
 
         news_analysis = llm.predict(prompt)
 
-        # HTML 강화된 요약 생성 (투자 분석 글씨 크기 h3으로 변경)
+        # Markdown 형식으로 요약 생성
         summary = f"""
-        <h3 style="font-size: 1.5rem;">📊 {company_name} ({ticker_krx}) 투자 분석</h3>
+        ## 📊 {company_name} ({ticker_krx}) 투자 분석
 
-        <div style="background-color: #f0f8ff; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <h3>🏢 기업 정보 요약</h3>
-        <table style="width: 100%;">
-          <tr>
-            <td><b>현재 주가:</b></td>
-            <td>{stock_info['current_price']} {stock_info['price_change_str']}</td>
-          </tr>
-          <tr>
-            <td><b>52주 최고/최저:</b></td>
-            <td>{stock_info['year_high']} / {stock_info['year_low']}</td>
-          </tr>
-          <tr>
-            <td><b>시가총액:</b></td>
-            <td>{stock_info['market_cap_str']}</td>
-          </tr>
-          <tr>
-            <td><b>PER (주가수익비율):</b></td>
-            <td>{stock_info['per']}</td>
-          </tr>
-          <tr>
-            <td><b>PBR (주가순자산비율):</b></td>
-            <td>{stock_info['pbr']}</td>
-          </tr>
-          <tr>
-            <td><b>배당수익률:</b></td>
-            <td>{stock_info['dividend_yield']}</td>
-          </tr>
-        </table>
-        </div>
+        ### 🏢 기업 정보 요약
 
-        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <h3>📰 최신 뉴스 및 분석</h3>
+        | 항목 | 정보 |
+        | --- | --- |
+        | **현재 주가** | {stock_info['current_price']} {stock_info['price_change_str'].replace('<span', '*').replace('</span>', '*')} |
+        | **52주 최고/최저** | {stock_info['year_high']} / {stock_info['year_low']} |
+        | **시가총액** | {stock_info['market_cap_str']} |
+        | **PER (주가수익비율)** | {stock_info['per']} |
+        | **PBR (주가순자산비율)** | {stock_info['pbr']} |
+        | **배당수익률** | {stock_info['dividend_yield']} |
+
+        ### 📰 최신 뉴스 및 분석
+
         {news_analysis}
-        </div>
         """
 
         return summary
