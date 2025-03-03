@@ -5,6 +5,7 @@ from news_crawler import crawl_news
 from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
 from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr
 from Collecting_Stock_Information import get_enhanced_stock_info
+from visualization import plot_stock_plotly
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
     st.session_state.selected_period = st.session_state.radio_selection
