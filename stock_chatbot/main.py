@@ -10,11 +10,9 @@ import FinanceDataReader as fdr
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 
-
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
     st.session_state.selected_period = st.session_state.radio_selection
-
 
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
@@ -77,18 +75,56 @@ def main():
         # 주가 차트 표시
         st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # 선택된 기간을 강제 업데이트하여 즉시 반영
-        st.session_state.radio_selection = st.session_state.selected_period
+        # ✅ 애니메이션 포함한 CSS 스타일 추가 (기간 선택 글씨 제거)
+        st.markdown("""
+        <style>
+            /* 라디오 버튼 컨테이너 스타일 */
+            div[role="radiogroup"] {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-top: -10px; /* 위쪽 여백 줄이기 */
+            }
+
+            /* 버튼 스타일 */
+            div[role="radiogroup"] label {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 15px;
+                border: 2px solid #ddd;
+                border-radius: 20px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease-in-out;
+            }
+
+            /* 선택된 버튼 스타일 */
+            div[role="radiogroup"] input:checked + label {
+                background-color: #ff4757;
+                color: white;
+                border-color: #e84118;
+                transform: scale(1.1);
+            }
+
+            /* 마우스 올렸을 때 (호버 효과) */
+            div[role="radiogroup"] label:hover {
+                background-color: #dcdde1;
+                border-color: #7f8c8d;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # ✅ "기간 선택" 문구 제거한 버튼 UI
         selected_period = st.radio(
-            "기간 선택",
+            "",  # ✅ 라벨 제거
             options=["1day", "week", "1month", "1year"],
             index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
             key="radio_selection",
+            horizontal=True,
             on_change=update_period
         )
-
-        if selected_period != st.session_state.selected_period:
-            st.session_state.selected_period = selected_period
 
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
@@ -501,7 +537,6 @@ def get_fdr_stock_info(ticker_krx):
             'dividend_yield': '정보 없음',
             'market_cap': '정보 없음'
         }
-
 
 if __name__ == '__main__':
     main()
