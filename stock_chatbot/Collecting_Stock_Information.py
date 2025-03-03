@@ -434,10 +434,9 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         if not ticker_krx:
             return f"## {company_name}에 대한 정보를 찾을 수 없습니다."
 
-        ticker_yahoo = ticker_krx + ".KS"
 
         # 향상된 주식 정보 수집 함수 사용
-        stock_info = get_enhanced_stock_info(ticker_yahoo, ticker_krx)
+        stock_info = get_enhanced_stock_info(ticker_krx)
 
         # 단위를 추가하기 위한 헬퍼 함수들
         def add_percent_if_needed(value):
