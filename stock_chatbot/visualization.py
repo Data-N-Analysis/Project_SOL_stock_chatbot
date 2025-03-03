@@ -17,13 +17,14 @@ def plot_stock_plotly(df, company, period):
 
     fig = go.Figure()
 
-    # x축 날짜 형식 설정
-    if period == "1day":
-        df["FormattedDate"] = df["Date"].dt.strftime("%H:%M")
-    elif period == "week":
-        df["FormattedDate"] = df["Date"].dt.strftime("%m-%d %H:%M")
+    # 🔹 데이터 컬럼명 확인 후 올바르게 매핑
+    if "시간" in df.columns:
+        df["FormattedDate"] = df["시간"].dt.strftime("%H:%M") if period == "1day" else df["시간"].dt.strftime("%m-%d %H:%M")
+    elif "Date" in df.columns:
+        df["FormattedDate"] = df["Date"].dt.strftime("%H:%M") if period == "1day" else df["Date"].dt.strftime("%m-%d %H:%M")
     else:
-        df["FormattedDate"] = df["Date"].dt.strftime("%m-%d")
+        st.error("📛 데이터에 '시간' 또는 'Date' 컬럼이 없습니다.")
+        return
 
     # x축 간격 설정
     if period == "1day":
@@ -32,9 +33,9 @@ def plot_stock_plotly(df, company, period):
         tickvals = df[df["FormattedDate"].str.endswith("09:00")]["FormattedDate"].tolist()  # 9시만 표시
     elif period == "1month":
         tickvals = df.iloc[::4]["FormattedDate"].tolist()  # 4일 간격
-    else:  # 1year - 첫 달은 건너뛰고 나머지 월만 표시
-        df['Year'] = df['Date'].dt.year
-        df['Month'] = df['Date'].dt.month
+    else:
+        df['Year'] = df["시간"].dt.year if "시간" in df.columns else df["Date"].dt.year
+        df['Month'] = df["시간"].dt.month if "시간" in df.columns else df["Date"].dt.month
 
         # 첫 번째 월 구하기
         first_month = df['Month'].iloc[0]
@@ -55,11 +56,11 @@ def plot_stock_plotly(df, company, period):
         else:
             tickvals = []
 
-    # 1day와 week는 선 그래프, 1month와 1year는 캔들 차트 적용
+    # 🔹 1day와 week는 선 그래프, 1month와 1year는 캔들 차트 적용
     if period in ["1day", "week"]:
         fig.add_trace(go.Scatter(
             x=df["FormattedDate"],
-            y=df["Close"],
+            y=df["종가"],
             mode="lines",
             name="종가"
         ))
