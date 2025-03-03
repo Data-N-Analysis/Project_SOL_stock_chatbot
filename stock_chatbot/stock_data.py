@@ -1,8 +1,7 @@
 import pandas as pd
 from bs4 import BeautifulSoup
-import datetime
+from datetime import datetime, timedelta, time  # ✅ datetime, timedelta, time 추가
 import FinanceDataReader as fdr
-from datetime import datetime, timedelta
 import streamlit as st
 import requests
 
@@ -13,13 +12,12 @@ def get_recent_trading_day():
     Returns:
         str: 최근 거래일(YYYY-MM-DD 형식)
     """
-    today = datetime.now()  # ✅ datetime.datetime.now() → datetime.now()
-    if today.hour < 9:  
+    today = datetime.now()
+    if today.hour < 9:
         today -= timedelta(days=1)
     while today.weekday() in [5, 6]:  
         today -= timedelta(days=1)
     return today.strftime('%Y-%m-%d')
-
 
 # 📌 기업명으로부터 증권 코드를 찾는 함수 (KRX 기준)
 def get_ticker(company):
@@ -40,35 +38,30 @@ def get_ticker(company):
         st.error(f"티커 조회 중 오류 발생: {e}")
         return None
 
-
+# 📌 네이버 fchart API에서 분봉 데이터 가져오기
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     """
     네이버 금융 Fchart API에서 분봉 데이터를 가져와서 DataFrame으로 변환
     """
-    # 📌 현재 시간 가져오기
     now = datetime.now()
 
-    # 📌 아침 9시 이전이면 전날 데이터 가져오기
     if now.hour < 9:
         now -= timedelta(days=1)
 
-    # 📌 주말이면 금요일 데이터 가져오기
     if now.weekday() == 6:  # 일요일
         now -= timedelta(days=2)  # 금요일로 이동
     elif now.weekday() == 5:  # 토요일
         now -= timedelta(days=1)  # 금요일로 이동
 
-    # 📌 기준 날짜 설정 (1 Day 모드일 때만 사용)
     target_date = now.strftime("%Y-%m-%d") if days == 1 else None
 
-    # ✅ 네이버 Fchart API 호출
     url = f"https://fchart.stock.naver.com/sise.nhn?symbol={stock_code}&timeframe=minute&count={days * 78}&requestType=0"
     response = requests.get(url)
 
     if response.status_code != 200:
         return pd.DataFrame()  # 요청 실패 시 빈 데이터 반환
 
-    soup = BeautifulSoup(response.text, "lxml")  # ✅ XML 파싱
+    soup = BeautifulSoup(response.text, "lxml")
 
     data_list = []
     for item in soup.find_all("item"):
@@ -76,40 +69,36 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
         if len(values) < 6:
             continue
 
-        time, _, _, _, close, _ = values  # ✅ 종가(close)만 사용 (거래량 삭제)
+        time_str, _, _, _, close, _ = values
         if close == "null":
             continue
 
-        time = datetime.strptime(time, "%Y%m%d%H%M")  # ✅ 문자열을 datetime 형식으로 변환
+        time_val = datetime.strptime(time_str, "%Y%m%d%H%M")  # ✅ 문자열을 datetime 형식으로 변환
         close = float(close)
 
-        # 📌 1 Day 모드일 때만 날짜 필터링
         if target_date:
-            if time.strftime("%Y-%m-%d") == target_date:
-                data_list.append([time, close])
+            if time_val.strftime("%Y-%m-%d") == target_date:
+                data_list.append([time_val, close])
         else:
-            data_list.append([time, close])  # ✅ Week 모드에서는 전체 추가
+            data_list.append([time_val, close])
 
     df = pd.DataFrame(data_list, columns=["시간", "종가"])
 
-    # 📌 ✅ '시간' 컬럼을 datetime 형식으로 변환 (중요)
+    # ✅ '시간'을 datetime 형식으로 변환
     df["시간"] = pd.to_datetime(df["시간"])
 
-    # 📌 ✅ 9시 ~ 15시 30분 데이터만 필터링
-    df = df[(df["시간"].dt.time >= datetime.strptime("09:00", "%H:%M").time()) & 
-            (df["시간"].dt.time <= datetime.strptime("15:30", "%H:%M").time())]
+    # ✅ 9시 ~ 15시 30분 데이터만 필터링 (올바른 time 사용)
+    df = df[(df["시간"].dt.time >= time(9, 0)) & (df["시간"].dt.time <= time(15, 30))]
 
     return df
 
-
+# 📌 FinanceDataReader를 통해 일별 시세를 가져오는 함수
 def get_daily_stock_data_fdr(ticker, period):
     """
     FinanceDataReader를 통해 일별 시세를 가져오는 함수
-
     Args:
         ticker (str): 티커 코드
         period (str): 기간 ("1month" 또는 "1year")
-
     Returns:
         DataFrame: 주식 데이터
     """
@@ -121,9 +110,8 @@ def get_daily_stock_data_fdr(ticker, period):
         if df.empty:
             return pd.DataFrame()
         df = df.reset_index()
-        df = df.rename(columns={"Date": "Date", "Close": "Close"})
         df["Date"] = pd.to_datetime(df["Date"])
-        df = df[df["Date"].dt.weekday < 5].reset_index(drop=True)
+        df = df[df["Date"].dt.weekday < 5].reset_index(drop=True)  # ✅ 주말 데이터 제거
         return df
     except Exception as e:
         st.error(f"FinanceDataReader 데이터 불러오기 오류: {e}")
