@@ -463,16 +463,14 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     stock_info = {}
 
     try:
-        # 1. yfinance 사용
-        yf_info = yf.Ticker(ticker_yahoo).info
 
-        # 2. FinanceDataReader 사용 (한국 주식 정보)
+        # 1. FinanceDataReader 사용 (한국 주식 정보)
         fdr_info = get_fdr_stock_info(ticker_krx)
 
-        # 3. 네이버 금융 웹 크롤링 사용
+        # 2. 네이버 금융 웹 크롤링 사용
         naver_info = get_stock_info_naver(ticker_krx)
 
-        # 통합하여 저장 (세 소스의 결과 병합, 우선순위: 네이버 > yfinance > FinanceDataReader)
+        # 통합하여 저장 (두 소스의 결과 병합, 우선순위: 네이버 > FinanceDataReader)
 
         # 현재 주가 설정
         if naver_info and naver_info.get('현재가') and naver_info.get('현재가') != 'N/A':
