@@ -1,42 +1,50 @@
+import pandas as pd
+import yfinance as yf
+import FinanceDataReader as fdr
+from datetime import datetime, timedelta
 import streamlit as st
 import requests
-import pandas as pd
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, time
-import FinanceDataReader as fdr
-
-# 📌 가장 최근 거래일을 구하는 함수
+from datetime import time
 def get_recent_trading_day():
     """
     가장 최근 거래일을 구하는 함수
+
     Returns:
         str: 최근 거래일(YYYY-MM-DD 형식)
     """
     today = datetime.now()
-    if today.hour < 9:
+    if today.hour < 9:  # 9시 이전이면 전날을 기준으로
         today -= timedelta(days=1)
-    while today.weekday() in [5, 6]:  
+    while today.weekday() in [5, 6]:  # 토요일(5), 일요일(6)이면 하루씩 감소
         today -= timedelta(days=1)
     return today.strftime('%Y-%m-%d')
 
-# 📌 기업명으로부터 증권 코드를 찾는 함수 (KRX 기준)
-def get_ticker(company):
+
+def get_ticker(company, source="yahoo"):
     """
     기업명으로부터 증권 코드를 찾는 함수
+
     Args:
         company (str): 기업명
+        source (str): 데이터 소스 ("yahoo" 또는 "fdr")
+
     Returns:
-        str: 티커 코드 (6자리 숫자 문자열)
+        str: 티커 코드
     """
     try:
         listing = fdr.StockListing('KRX')
         ticker_row = listing[listing["Name"].str.strip() == company.strip()]
         if not ticker_row.empty:
-            return str(ticker_row.iloc[0]["Code"]).zfill(6)  # KRX용 티커 반환
+            krx_ticker = str(ticker_row.iloc[0]["Code"]).zfill(6)
+            if source == "yahoo":
+                return krx_ticker + ".KS"  # 야후 파이낸스용 티커 변환
+            return krx_ticker  # FinanceDataReader용 티커
         return None
     except Exception as e:
         st.error(f"티커 조회 중 오류 발생: {e}")
         return None
+
 
 # 📌 네이버 Fchart API에서 분봉 데이터 가져오기 (최신 거래일 탐색 포함)
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
