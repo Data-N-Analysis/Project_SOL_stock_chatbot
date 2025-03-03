@@ -17,7 +17,7 @@ def update_period():
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
     st.title("📈 기업 정보 분석 QA Chat")
-    st.markdown("원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다! <br>⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥")
+    st.markdown("원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다! <br><br>⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥")
 
     # 세션 상태 초기화
     if "conversation" not in st.session_state:
