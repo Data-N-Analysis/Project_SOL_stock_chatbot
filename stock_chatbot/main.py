@@ -542,6 +542,7 @@ def get_stock_info_naver(ticker_krx):
     Returns:
         dict: 주식 정보 딕셔너리 또는 None (실패 시)
     """
+    ticker_krx = int(ticker_krx)
     url = f"https://finance.naver.com/item/main.naver?code={ticker_krx}"  # URL 수정: main.nhn -> main.naver
 
     headers = {
