@@ -7,18 +7,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def crawl_news(company, days, threshold=0.3):
-    """
-    특정 기업에 대한 최근 뉴스를 크롤링하고 중복 제거하여 반환
+def jaccard_similarity(str1, str2):
+    """Jaccard 유사도 계산 함수"""
+    set1, set2 = set(str1.split()), set(str2.split())
+    return len(set1 & set2) / len(set1 | set2)
 
-    Args:
-        company (str): 검색할 기업명
-        days (int): 검색할 날짜 범위(일)
-        threshold (float): 중복 판단을 위한 유사도 임계값
 
-    Returns:
-        list: 뉴스 데이터 목록 (제목, 링크, 내용 포함)
-    """
+def crawl_news(company, days):
     today = datetime.today()
     start_date = (today - timedelta(days=days)).strftime('%Y%m%d')
     end_date = today.strftime('%Y%m%d')
@@ -35,7 +30,11 @@ def crawl_news(company, days, threshold=0.3):
     }
 
     data = []
-    for page in range(1, 6):
+    seen_urls = set()
+    seen_titles = []
+    seen_contents = []
+
+    for page in range(1, 6):  # 1~5 페이지 크롤링
         url = url_template.format((page - 1) * 10 + 1)
         response = requests.get(url, headers=headers)
         response.raise_for_status()
@@ -43,43 +42,48 @@ def crawl_news(company, days, threshold=0.3):
         articles = soup.select("ul.list_news > li")
 
         for article in articles:
-            title = article.select_one("a.news_tit").text
-            link = article.select_one("a.news_tit")['href']
-            content = article.select_one("div.news_dsc").text if article.select_one("div.news_dsc") else ""
+            title_elem = article.select_one("a.news_tit")
+            content_elem = article.select_one("div.news_dsc")
+
+            if not title_elem:
+                continue
+
+            title = title_elem.text.strip()
+            link = title_elem['href']
+            content = content_elem.text.strip() if content_elem else ""
+
+            # ✅ 1. URL 중복 검사
+            if link in seen_urls:
+                continue
+            seen_urls.add(link)
+
+            # ✅ 2. 제목 중복 검사 (TF-IDF 기반 유사도 체크)
+            is_duplicate_title = False
+            if seen_titles:
+                vectorizer = TfidfVectorizer().fit_transform([title] + seen_titles)
+                similarity_scores = cosine_similarity(vectorizer[0], vectorizer[1:]).flatten()
+                if any(score > 0.1 for score in similarity_scores):  # 10% 이상 유사하면 중복으로 판단
+                    is_duplicate_title = True
+
+            if is_duplicate_title:
+                continue
+            seen_titles.append(title)
+
+            # ✅ 3. 본문 유사도 검사 (Jaccard Similarity)
+            is_duplicate_content = False
+            for existing_content in seen_contents:
+                if jaccard_similarity(content, existing_content) > 0.05:  # 5% 이상 유사하면 중복 처리
+                    is_duplicate_content = True
+                    break
+
+            if is_duplicate_content:
+                continue
+            seen_contents.append(content)
+
+            # ✅ 4. 본문이 너무 짧거나 없는 경우 제외
+            if len(content) < 20:  # 20자 이하는 광고성, 불완전 기사일 가능성 높음
+                continue
+
             data.append({"title": title, "link": link, "content": content})
 
-    return deduplicate_news(data, threshold)
-
-
-def deduplicate_news(news_data, threshold=0.3):
-    """
-    중복된 뉴스를 제거하는 함수
-
-    Args:
-        news_data (list): 뉴스 데이터 리스트
-        threshold (float): 중복 판단 임계값
-
-    Returns:
-        list: 중복이 제거된 뉴스 데이터
-    """
-    if len(news_data) <= 1:
-        return news_data
-
-    # 제목과 본문을 합친 텍스트 생성
-    combined_texts = [news['title'] + " " + news['content'] for news in news_data]
-    vectorizer = TfidfVectorizer().fit_transform(combined_texts)
-    cosine_sim = cosine_similarity(vectorizer, vectorizer)
-
-    filtered_news = []
-    seen_indices = set()
-
-    for i, news in enumerate(news_data):
-        if i in seen_indices:
-            continue
-
-        filtered_news.append(news)
-        for j in range(i + 1, len(news_data)):
-            if news_data[j]['title'] == news['title'] or cosine_sim[i, j] > threshold:
-                seen_indices.add(j)
-
-    return filtered_news
+    return data
