@@ -297,13 +297,13 @@ def generate_company_summary(company_name, news_data, openai_api_key):
 
             <h4 style="font-size: 21px; margin-top: 1.5em; margin-bottom: 0;">투자 영향 요인</h4>
             <div style="font-size: 14px; margin-top: 5px;">
-                <h5 style="color: green; font-size: 14px; margin-bottom: 0;">✅ 긍정적 요인</h5>
+                <h5 style="color: green; font-size: 17px; margin-bottom: 0;">✅ 긍정적 요인</h5>
                 <ul style="margin-top: 5px;">
                     <li>[긍정적 요인 1]</li>
                     <!-- 2-3개 항목 -->
                 </ul>
                 
-                <h5 style="color: red; font-size: 14px; margin-bottom: 0;">⚠️ 부정적 요인</h5>
+                <h5 style="color: red; font-size: 17px; margin-bottom: 0;">⚠️ 부정적 요인</h5>
                 <ul style="margin-top: 5px;">
                     <li>[부정적 요인 1]</li>
                     <!-- 2-3개 항목 -->
