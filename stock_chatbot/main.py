@@ -239,7 +239,7 @@ def enhance_llm_response(text):
 def generate_company_summary(company_name, news_data, openai_api_key):
     try:
         # 기업 정보 수집
-        ticker_krx = get_ticker(company_name, source="fdr")
+        ticker_krx = get_ticker(company_name)
         if not ticker_krx:
             return f"## {company_name}에 대한 정보를 찾을 수 없습니다."
 
