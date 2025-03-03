@@ -46,7 +46,7 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     네이버 금융 Fchart API에서 분봉 데이터를 가져와서 DataFrame으로 변환
     """
     # 📌 현재 시간 가져오기
-    now = datetime.datetime.now()
+    now = datetime.now()
 
     # 📌 아침 9시 이전이면 전날 데이터 가져오기
     if now.hour < 9:
