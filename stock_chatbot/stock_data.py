@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
-
+from datetime import time
 def get_recent_trading_day():
     """
     가장 최근 거래일을 구하는 함수

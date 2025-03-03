@@ -3,7 +3,6 @@ import requests
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-
 def plot_stock_plotly(df, company, period):
     """
     Args:
