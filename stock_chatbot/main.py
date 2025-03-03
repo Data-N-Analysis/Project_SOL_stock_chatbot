@@ -17,11 +17,6 @@ def update_period():
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
     st.title("📈 기업 정보 분석 QA Chat")
-    st.markdown(
-        "원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다! <br><br>"
-        "⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥",
-        unsafe_allow_html=True
-    )
 
     # 세션 상태 초기화
     if "conversation" not in st.session_state:
@@ -45,6 +40,12 @@ def main():
         company_name = st.text_input("분석할 기업명 (코스피 상장)")
         days = st.number_input("최근 며칠 동안의 기사를 검색할까요?", min_value=1, max_value=30, value=7)
         process = st.button("분석 시작")
+
+    if not process:
+        st.markdown(
+            "원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다!\n\n"
+            "⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥"
+        )
 
     # 분석 시작 버튼 클릭 시
     if process:
