@@ -272,8 +272,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
 
         # 모든 뉴스 통합 후 전체 요약 요청
         all_news_text = "\n\n".join(
-            [f"제목: {news['title']}\n내용: {news['content']}\n출처: {news['link']}" for news in news_data[:10]]
-        )
+            [f"제목: {news['title']}\n내용: {news['content']}\n출처: {news['link']}" for news in news_data[:10]])
 
         prompt = f"""
         {company_name}에 관한 다음 뉴스들을 통합 분석하여 투자자에게 유용한 정보를 제공해주세요:
@@ -286,18 +285,21 @@ def generate_company_summary(company_name, news_data, openai_api_key):
             <ol style="font-size: 14px; margin-top: 5px;">
                 <li>[동향 내용 1] (출처: <a href="뉴스링크" target="_blank">출처명</a>)</li>
                 <li>[동향 내용 2] (출처: <a href="뉴스링크" target="_blank">출처명</a>)</li>
+                <!-- 4-7개 항목 -->
             </ol>
 
-            <h4 style="font-size: 21px; margin-top: 1.5em; margin-bottom: 5px;">투자 영향 요인</h4>
+            <h4 style="font-size: 21px; margin-top: 1.5em; margin-bottom: 0;">투자 영향 요인</h4>
             <div style="font-size: 14px; margin-top: 5px;">
-                <h5 style="color: green; font-size: 14px; margin-bottom: 5px;">✅ 긍정적 요인</h5>
-                <ul style="margin-top: 5px; padding-left: 20px;">
+                <h5 style="color: green; font-size: 14px; margin-bottom: 0;">✅ 긍정적 요인</h5>
+                <ul style="margin-top: 5px;">
                     <li>[긍정적 요인 1]</li>
+                    <!-- 2-3개 항목 -->
                 </ul>
-
-                <h5 style="color: red; font-size: 14px; margin-top: 10px; margin-bottom: 5px;">⚠️ 부정적 요인</h5>
-                <ul style="margin-top: 5px; padding-left: 20px;">
+                
+                <h5 style="color: red; font-size: 14px; margin-bottom: 0;">⚠️ 부정적 요인</h5>
+                <ul style="margin-top: 5px;">
                     <li>[부정적 요인 1]</li>
+                    <!-- 2-3개 항목 -->
                 </ul>
             </div>
 
@@ -348,7 +350,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
             <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">📰 최신 뉴스 및 분석</h3>
 
             <div style="line-height: 1.6;">
-                {news_analysis.replace('\n', '').replace('<h4>', '<h4 style="font-size: 21px; margin-bottom: 0;">').replace('<h5', '<h5 style="font-size: 14px; margin-bottom: 5px;"').replace('<p>', '<p style="font-size: 14px; margin-top: 5px;">').replace('<li>', '<li style="font-size: 14px; padding-left: 10px;">').replace('</ol>', '</ol><br><br>').replace('</ul>', '</ul>').replace('</p>', '</p><br><br>')}
+                {news_analysis.replace('\n', '').replace('<h4>', '<h4 style="font-size: 21px; margin-bottom: 0;">').replace('<h5', '<h5 style="font-size: 14px; margin-bottom: 0;"').replace('<p>', '<p style="font-size: 14px; margin-top: 5px;">').replace('<li>', '<li style="font-size: 14px;">').replace('</ol>', '</ol><br><br>').replace('</ul>', '</ul><br><br>').replace('</p>', '</p><br><br>')}
             </div>
         </div>
         """
