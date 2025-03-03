@@ -1,9 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
-from company_stock_summary import generate_company_summary, enhance_llm_response
+from company_stock_summary import get_ticker, generate_company_summary, enhance_llm_response
 from news_crawler import crawl_news
 from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
-from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr
+from stock_data import  get_naver_fchart_minute_data, get_daily_stock_data_fdr
 from Collecting_Stock_Information import get_enhanced_stock_info
 from visualization import plot_stock_plotly
 def update_period():

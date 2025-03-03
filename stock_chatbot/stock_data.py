@@ -3,26 +3,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, time
-import FinanceDataReader as fdr
 
-# 📌 기업명으로부터 증권 코드를 찾는 함수 (KRX 기준)
-def get_ticker(company):
-    """
-    기업명으로부터 증권 코드를 찾는 함수
-    Args:
-        company (str): 기업명
-    Returns:
-        str: 티커 코드 (6자리 숫자 문자열)
-    """
-    try:
-        listing = fdr.StockListing('KRX')
-        ticker_row = listing[listing["Name"].str.strip() == company.strip()]
-        if not ticker_row.empty:
-            return str(ticker_row.iloc[0]["Code"]).zfill(6)  # KRX용 티커 반환
-        return None
-    except Exception as e:
-        st.error(f"티커 조회 중 오류 발생: {e}")
-        return None
 
 # 📌 가장 최근 거래일을 구하는 함수
 def get_recent_trading_day():
