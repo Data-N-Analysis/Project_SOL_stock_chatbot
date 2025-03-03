@@ -339,8 +339,6 @@ def generate_company_summary(company_name, news_data, openai_api_key):
                     return f"{num / 1_0000_0000_0000:.2f}조원"
                 elif abs(num) >= 1_0000_0000:  # 1억 이상
                     return f"{num / 1_0000_0000:.2f}억원"
-                elif abs(num) >= 1_0000:  # 1만 이상
-                    return f"{num / 1_0000:.2f}만원"
                 else:
                     return f"{int(num):,}원"
             except:
