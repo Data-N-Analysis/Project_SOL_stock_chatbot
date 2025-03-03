@@ -46,28 +46,28 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     네이버 금융 Fchart API에서 분봉 데이터를 가져와서 DataFrame으로 변환
     """
     # 📌 현재 시간 가져오기
-    now = datetime.now()
+    now = datetime.now()  # ✅ 수정됨
 
     # 📌 아침 9시 이전이면 전날 데이터 가져오기
     if now.hour < 9:
-        now -= datetime.timedelta(days=1)
+        now -= timedelta(days=1)  # ✅ 수정됨 (datetime.timedelta → timedelta)
 
     # 📌 주말이면 금요일 데이터 가져오기
     if now.weekday() == 6:  # 일요일
-        now -= datetime.timedelta(days=2)  # 금요일로 이동
+        now -= timedelta(days=2)  # ✅ 수정됨
     elif now.weekday() == 5:  # 토요일
-        now -= datetime.timedelta(days=1)  # 금요일로 이동
+        now -= timedelta(days=1)  # ✅ 수정됨
 
     # 📌 기준 날짜 설정 (1 Day 모드일 때만 사용)
     target_date = now.strftime("%Y-%m-%d") if days == 1 else None
 
-    # 📌 ✅ 네이버 Fchart API 호출
+    # ✅ 네이버 Fchart API 호출
     url = f"https://fchart.stock.naver.com/sise.nhn?symbol={stock_code}&timeframe=minute&count={days * 78}&requestType=0"
     response = requests.get(url)
 
     if response.status_code != 200:
         return pd.DataFrame()  # 요청 실패 시 빈 데이터 반환
-
+        
     soup = BeautifulSoup(response.text, "lxml")  # ✅ XML 파싱
 
     data_list = []
