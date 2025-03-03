@@ -6,7 +6,6 @@ import plotly.graph_objects as go
 
 def plot_stock_plotly(df, company, period):
     """
-    Plotly를 이용한 주가 시각화 함수 (보간 제거)
 
     Args:
         df (DataFrame): 주식 데이터
