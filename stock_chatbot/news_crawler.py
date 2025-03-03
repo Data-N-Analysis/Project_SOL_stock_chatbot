@@ -29,7 +29,7 @@ def crawl_news(company, days):
         ])
     }
 
-    data = []
+    news = []
     seen_urls = set()
     seen_titles = []
     seen_contents = []
@@ -84,6 +84,6 @@ def crawl_news(company, days):
             if len(content) < 20:  # 20자 이하는 광고성, 불완전 기사일 가능성 높음
                 continue
 
-            data.append({"title": title, "link": link, "content": content})
+            news.append({"title": title, "link": link, "content": content})
 
-    return data
+    return news
