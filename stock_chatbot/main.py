@@ -17,7 +17,7 @@ def update_period():
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
     st.title("📈 기업 정보 분석 QA Chat")
-    st.markdown("기업의 주가, 재무 정보, 최신 뉴스를 분석하는 AI 챗봇입니다. 원하는 기업명을 입력하고 질문하세요!")
+    st.markdown("기업의 주가, 재무 정보, 최신 뉴스를 분석하는 AI 챗봇입니다. 원하는 기업명과 일수를 입력하세요!")
 
     # 세션 상태 초기화
     if "conversation" not in st.session_state:
@@ -281,33 +281,32 @@ def generate_company_summary(company_name, news_data, openai_api_key):
 
         HTML 형식으로 응답해주세요:
         <div>
-            <h4 style="font-size: 21px;">최신 동향</h4>
-            <ol style="font-size: 14px;">
+            <h4 style="font-size: 21px; margin-bottom: 0;">최신 동향</h4>
+            <ol style="font-size: 14px; margin-top: 5px;">
                 <li>[동향 내용 1] (출처: <a href="뉴스링크" target="_blank">출처명</a>)</li>
                 <li>[동향 내용 2] (출처: <a href="뉴스링크" target="_blank">출처명</a>)</li>
                 <!-- 4-7개 항목 -->
             </ol>
 
-        <div>
-            <h4 style="font-size: 21px; margin-top: 3em;">투자 영향 요인</h4>
-            <div style="font-size: 14px;">
-                    <h5 style="color: green; font-size: 14px;">✅ 긍정적 요인</h5>
-                    <ul>
-                        <li>[긍정적 요인 1]</li>
-                        <!-- 2-3개 항목 -->
-                    </ul>
-                    <h5 style="color: red; font-size: 14px;">⚠️ 부정적 요인</h5>
-                    <ul>
-                        <li>[부정적 요인 1]</li>
-                        <!-- 2-3개 항목 -->
-                    </ul>
+            <h4 style="font-size: 21px; margin-top: 1.5em; margin-bottom: 0;">투자 영향 요인</h4>
+            <div style="font-size: 14px; margin-top: 5px;">
+                <h5 style="color: green; font-size: 14px; margin-bottom: 0;">✅ 긍정적 요인</h5>
+                <ul style="margin-top: 5px;">
+                    <li>[긍정적 요인 1]</li>
+                    <!-- 2-3개 항목 -->
+                </ul>
+
+                <h5 style="color: red; font-size: 14px; margin-bottom: 0;">⚠️ 부정적 요인</h5>
+                <ul style="margin-top: 5px;">
+                    <li>[부정적 요인 1]</li>
+                    <!-- 2-3개 항목 -->
+                </ul>
             </div>
-        
-            <h4 style="font-size: 21px; margin-top: 1.5em;">💹 투자 전망 및 조언</h4>
-            <p style="font-size: 14px;">[투자 전망 및 조언 내용]</p>
+
+            <h4 style="font-size: 21px; margin-top: 1.5em; margin-bottom: 0;">💹 투자 전망 및 조언</h4>
+            <p style="font-size: 14px; margin-top: 5px;">[투자 전망 및 조언 내용]</p>
         </div>
         """
-
         news_analysis = llm.predict(prompt)
 
         # 응답 형식 수정
@@ -351,7 +350,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
             <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">📰 최신 뉴스 및 분석</h3>
 
             <div style="line-height: 1.6;">
-                {news_analysis.replace('\n', '').replace('<h4>', '<h4 style="font-size: 21px; margin-bottom: 0;">').replace('<h5', '<h5 style="font-size: 14px; margin-bottom: 0;"').replace('<p>', '<p style="font-size: 14px; margin-top: 0;">').replace('<li>', '<li style="font-size: 14px;">').replace('</ol>', '</ol><br><br><br>').replace('</ul>', '</ul><br><br><br>').replace('</p>', '</p><br><br><br>')}
+                {news_analysis.replace('\n', '').replace('<h4>', '<h4 style="font-size: 21px; margin-bottom: 0;">').replace('<h5', '<h5 style="font-size: 14px; margin-bottom: 0;"').replace('<p>', '<p style="font-size: 14px; margin-top: 5px;">').replace('<li>', '<li style="font-size: 14px;">').replace('</ol>', '</ol><br><br>').replace('</ul>', '</ul><br><br>').replace('</p>', '</p><br><br>')}
             </div>
         </div>
         """
@@ -359,6 +358,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         return summary_html
     except Exception as e:
         return f"<div style='color: red;'><h2>⚠️ {company_name} 정보 분석 중 오류가 발생했습니다:</h2> <p>{str(e)}</p></div>"
+
 
 
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
