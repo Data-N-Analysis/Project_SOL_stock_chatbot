@@ -528,17 +528,17 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
 
 
 # 네이버 금융에서 종목 정보 가져오기
-def get_stock_info_naver(stock_code):
+def get_stock_info_naver(ticker_krx):
     """
     네이버 금융에서 특정 종목의 주요 재무 지표를 크롤링하여 반환
 
     Args:
-        stock_code (str): 한국 주식 코드 (예: '005930')
+        ticker_krx (str): 한국 주식 코드 (예: '005930')
 
     Returns:
         dict: 주식 정보 딕셔너리 또는 None (실패 시)
     """
-    url = f"https://finance.naver.com/item/main.nhn?code={stock_code}"
+    url = f"https://finance.naver.com/item/main.nhn?code={ticker_krx}"
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
