@@ -2,11 +2,10 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.graph_objects as go
-
+import plotly.express as px
 
 def plot_stock_plotly(df, company, period):
     """
-
     Args:
         df (DataFrame): 주식 데이터
         company (str): 기업명
@@ -44,11 +43,8 @@ def plot_stock_plotly(df, company, period):
         # 각 월의 첫 거래일 찾기 (첫 번째 월은 제외)
         monthly_data = []
         for (year, month), group in df.groupby(['Year', 'Month']):
-            # 첫 번째 월 데이터는 건너뛰기
             if year == first_year and month == first_month:
                 continue
-
-            # 월별 첫 날짜 선택
             first_day = group.iloc[0]
             monthly_data.append(first_day)
 
@@ -59,15 +55,23 @@ def plot_stock_plotly(df, company, period):
         else:
             tickvals = []
 
-    # 모든 기간에서 캔들 차트 적용
-    fig.add_trace(go.Candlestick(
-        x=df["FormattedDate"],
-        open=df["Open"],
-        high=df["High"],
-        low=df["Low"],
-        close=df["Close"],
-        name="캔들 차트"
-    ))
+    # 1day와 week는 선 그래프, 1month와 1year는 캔들 차트 적용
+    if period in ["1day", "week"]:
+        fig.add_trace(go.Scatter(
+            x=df["FormattedDate"],
+            y=df["Close"],
+            mode="lines",
+            name="종가"
+        ))
+    else:
+        fig.add_trace(go.Candlestick(
+            x=df["FormattedDate"],
+            open=df["Open"],
+            high=df["High"],
+            low=df["Low"],
+            close=df["Close"],
+            name="캔들 차트"
+        ))
 
     fig.update_layout(
         title=f"{company} 주가 ({period})",
