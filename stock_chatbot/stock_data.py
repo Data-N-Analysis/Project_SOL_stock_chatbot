@@ -1,9 +1,9 @@
-import pandas as pd
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, time  # ✅ datetime, timedelta, time 추가
-import FinanceDataReader as fdr
 import streamlit as st
 import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta, time
+import FinanceDataReader as fdr
 
 # 📌 가장 최근 거래일을 구하는 함수
 def get_recent_trading_day():
@@ -38,7 +38,7 @@ def get_ticker(company):
         st.error(f"티커 조회 중 오류 발생: {e}")
         return None
 
-# 📌 네이버 fchart API에서 분봉 데이터 가져오기
+# 📌 네이버 Fchart API에서 분봉 데이터 가져오기 (최신 거래일 탐색 포함)
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     """
     네이버 금융 Fchart API에서 분봉 데이터를 가져와서 DataFrame으로 변환
@@ -48,47 +48,49 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     if now.hour < 9:
         now -= timedelta(days=1)
 
-    if now.weekday() == 6:  # 일요일
-        now -= timedelta(days=2)  # 금요일로 이동
-    elif now.weekday() == 5:  # 토요일
-        now -= timedelta(days=1)  # 금요일로 이동
+    # 📌 최신 거래일 찾기 (공휴일 대응)
+    while True:
+        target_date = now.strftime("%Y-%m-%d") if days == 1 else None
+        url = f"https://fchart.stock.naver.com/sise.nhn?symbol={stock_code}&timeframe=minute&count={days * 78}&requestType=0"
+        response = requests.get(url)
 
-    target_date = now.strftime("%Y-%m-%d") if days == 1 else None
+        if response.status_code != 200:
+            return pd.DataFrame()  # 요청 실패 시 빈 데이터 반환
 
-    url = f"https://fchart.stock.naver.com/sise.nhn?symbol={stock_code}&timeframe=minute&count={days * 78}&requestType=0"
-    response = requests.get(url)
+        soup = BeautifulSoup(response.text, "lxml")
 
-    if response.status_code != 200:
-        return pd.DataFrame()  # 요청 실패 시 빈 데이터 반환
+        data_list = []
+        for item in soup.find_all("item"):
+            values = item["data"].split("|")
+            if len(values) < 6:
+                continue
 
-    soup = BeautifulSoup(response.text, "lxml")
+            time_str, _, _, _, close, _ = values
+            if close == "null":
+                continue
 
-    data_list = []
-    for item in soup.find_all("item"):
-        values = item["data"].split("|")
-        if len(values) < 6:
-            continue
+            time_val = datetime.strptime(time_str, "%Y%m%d%H%M")
+            close = float(close)
 
-        time_str, _, _, _, close, _ = values
-        if close == "null":
-            continue
-
-        time_val = datetime.strptime(time_str, "%Y%m%d%H%M")  # ✅ 문자열을 datetime 형식으로 변환
-        close = float(close)
-
-        if target_date:
-            if time_val.strftime("%Y-%m-%d") == target_date:
+            if target_date:
+                if time_val.strftime("%Y-%m-%d") == target_date:
+                    data_list.append([time_val, close])
+            else:
                 data_list.append([time_val, close])
+
+        df = pd.DataFrame(data_list, columns=["시간", "종가"])
+
+        # 📌 ✅ 9시 ~ 15시 30분 데이터만 필터링
+        df["시간"] = pd.to_datetime(df["시간"])
+        df = df[(df["시간"].dt.time >= time(9, 0)) & (df["시간"].dt.time <= time(15, 30))]
+
+        # ✅ 데이터가 없는 경우 → 하루 전으로 이동하여 다시 시도
+        if df.empty:
+            now -= timedelta(days=1)
+            while now.weekday() in [5, 6]:  # 토요일(5) 또는 일요일(6)
+                now -= timedelta(days=1)
         else:
-            data_list.append([time_val, close])
-
-    df = pd.DataFrame(data_list, columns=["시간", "종가"])
-
-    # ✅ '시간'을 datetime 형식으로 변환
-    df["시간"] = pd.to_datetime(df["시간"])
-
-    # ✅ 9시 ~ 15시 30분 데이터만 필터링 (올바른 time 사용)
-    df = df[(df["시간"].dt.time >= time(9, 0)) & (df["시간"].dt.time <= time(15, 30))]
+            break  # 데이터를 찾았으면 반복 종료
 
     return df
 
