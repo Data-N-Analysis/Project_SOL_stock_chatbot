@@ -5,20 +5,6 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, time
 import FinanceDataReader as fdr
 
-# 📌 가장 최근 거래일을 구하는 함수
-def get_recent_trading_day():
-    """
-    가장 최근 거래일을 구하는 함수
-    Returns:
-        str: 최근 거래일(YYYY-MM-DD 형식)
-    """
-    today = datetime.now()
-    if today.hour < 9:
-        today -= timedelta(days=1)
-    while today.weekday() in [5, 6]:  
-        today -= timedelta(days=1)
-    return today.strftime('%Y-%m-%d')
-
 # 📌 기업명으로부터 증권 코드를 찾는 함수 (KRX 기준)
 def get_ticker(company):
     """
@@ -37,6 +23,21 @@ def get_ticker(company):
     except Exception as e:
         st.error(f"티커 조회 중 오류 발생: {e}")
         return None
+
+# 📌 가장 최근 거래일을 구하는 함수
+def get_recent_trading_day():
+    """
+    가장 최근 거래일을 구하는 함수
+    Returns:
+        str: 최근 거래일(YYYY-MM-DD 형식)
+    """
+    today = datetime.now()
+    if today.hour < 9:
+        today -= timedelta(days=1)
+    while today.weekday() in [5, 6]:  
+        today -= timedelta(days=1)
+    return today.strftime('%Y-%m-%d')
+
 
 # 📌 네이버 Fchart API에서 분봉 데이터 가져오기 (최신 거래일 탐색 포함)
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
