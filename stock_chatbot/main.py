@@ -18,7 +18,7 @@ def update_period():
 
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
-    st.title("기업 정보 분석 QA Chat")
+    st.title("📈 기업 정보 분석 QA Chat")
 
     # 세션 상태 초기화
     if "conversation" not in st.session_state:
@@ -42,6 +42,14 @@ def main():
         company_name = st.text_input("분석할 기업명 (코스피 상장)")
         days = st.number_input("최근 며칠 동안의 기사를 검색할까요?", min_value=1, max_value=30, value=7)
         process = st.button("분석 시작")
+
+    if not process:
+        st.markdown(
+            "<p style='margin: 0;'>원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다!</p>"
+            "<p style='margin: 0;'>⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥</p>",
+            unsafe_allow_html=True
+        )
+
 
     # 분석 시작 버튼 클릭 시
     if process:
@@ -358,42 +366,43 @@ def generate_company_summary(company_name, news_data, openai_api_key):
 
         HTML 형식으로 응답해주세요:
         <div>
-            <h4>최신 동향</h4>
-            <ol>
+            <h4 style="font-size: 21px; margin-bottom: 0;">최신 동향</h4>
+            <ol style="font-size: 14px; margin-top: 5px;">
                 <li>[동향 내용 1] (출처: <a href="뉴스링크" target="_blank">출처명</a>)</li>
                 <li>[동향 내용 2] (출처: <a href="뉴스링크" target="_blank">출처명</a>)</li>
                 <!-- 4-7개 항목 -->
             </ol>
 
-            <h4>투자 영향 요인</h4>
-            <div>
-                <h5 style="color: green;">✅ 긍정적 요인</h5>
-                <ul>
+            <h4 style="font-size: 21px; margin-top: 1.5em; margin-bottom: 0;">투자 영향 요인</h4>
+            <div style="font-size: 14px; margin-top: 5px;">
+                <h5 style="color: green; font-size: 17px; margin-bottom: 0;">✅ 긍정적 요인</h5>
+                <ul style="margin-top: 5px;">
                     <li>[긍정적 요인 1]</li>
                     <!-- 2-3개 항목 -->
                 </ul>
-
-                <h5 style="color: red;">⚠️ 부정적 요인</h5>
-                <ul>
+                
+                <h5 style="color: red; font-size: 17px; margin-bottom: 0;">⚠️ 부정적 요인</h5>
+                <ul style="margin-top: 5px;">
                     <li>[부정적 요인 1]</li>
                     <!-- 2-3개 항목 -->
                 </ul>
             </div>
 
-            <h4>💹 투자 전망 및 조언</h4>
-            <p>[투자 전망 및 조언 내용]</p>
+            <h4 style="font-size: 21px; margin-top: 1.5em; margin-bottom: 0;">💹 투자 전망 및 조언</h4>
+            <p style="font-size: 14px; margin-top: 5px;">[투자 전망 및 조언 내용]</p>
         </div>
         """
         news_analysis = llm.predict(prompt)
 
+
         # 새로운 HTML 템플릿으로 업데이트 (추가 정보 포함)
         summary_html = f"""
         <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2 style="color: #1f77b4; margin-bottom: 20px;">📊 {company_name} ({ticker_krx}) 투자 분석</h2>
+            <h2 style="color: #1f77b4; margin-bottom: 30px;">📊 {company_name} ({ticker_krx}) 투자 분석</h2>
 
             <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">🏢 기업 정보 요약</h3>
 
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 50px;">
                 <tr style="background-color: #f8f9fa;">
                     <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">항목</th>
                     <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">정보</th>
@@ -439,7 +448,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
             <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">📰 최신 뉴스 및 분석</h3>
 
             <div style="line-height: 1.6;">
-                {news_analysis.replace('\n', '<br>').replace('1. ', '<br>1. ').replace('2. ', '<br>2. ').replace('3. ', '<br>3. ')}
+                {news_analysis.replace('\n', '').replace('<h4>', '<h4 style="font-size: 21px; margin-bottom: 0;">').replace('<h5', '<h5 style="font-size: 14px; margin-bottom: 0;"').replace('<p>', '<p style="font-size: 14px; margin-top: 5px;">').replace('<li>', '<li style="font-size: 14px;">').replace('</ol>', '</ol><br><br>').replace('</ul>', '</ul><br><br>').replace('</p>', '</p><br><br>')}
             </div>
         </div>
         """
@@ -447,6 +456,11 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         return summary_html
     except Exception as e:
         return f"<div style='color: red;'><h2>⚠️ {company_name} 정보 분석 중 오류가 발생했습니다:</h2> <p>{str(e)}</p></div>"
+
+
+
+
+
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
 def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     """
