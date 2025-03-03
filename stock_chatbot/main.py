@@ -9,6 +9,8 @@ import yfinance as yf
 import FinanceDataReader as fdr
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
+import requests
+from bs4 import BeautifulSoup
 
 def update_period():
     """세션 상태 업데이트 함수 (기간 변경 시 즉시 반영)"""
@@ -369,8 +371,8 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         return summary_html
     except Exception as e:
         return f"<div style='color: red;'><h2>⚠️ {company_name} 정보 분석 중 오류가 발생했습니다:</h2> <p>{str(e)}</p></div>"
+
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
-# 향상된 주식 정보 수집 통합 함수
 def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     """
     여러 소스(yfinance, FinanceDataReader, 네이버 금융)에서 주식 정보를 수집하여 통합하는 함수
@@ -527,7 +529,9 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     return stock_info
 
 
-# 네이버 금융에서 종목 정보 가져오기
+
+
+
 def get_stock_info_naver(ticker_krx):
     """
     네이버 금융에서 특정 종목의 주요 재무 지표를 크롤링하여 반환
@@ -538,7 +542,7 @@ def get_stock_info_naver(ticker_krx):
     Returns:
         dict: 주식 정보 딕셔너리 또는 None (실패 시)
     """
-    url = f"https://finance.naver.com/item/main.nhn?code={ticker_krx}"
+    url = f"https://finance.naver.com/item/main.naver?code={ticker_krx}"  # URL 수정: main.nhn -> main.naver
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
@@ -547,110 +551,112 @@ def get_stock_info_naver(ticker_krx):
     try:
         response = requests.get(url, headers=headers)
         if response.status_code != 200:
-            return None  # 요청 실패 시 None 반환
+            print(f"요청 실패: {response.status_code}")
+            return None
 
         soup = BeautifulSoup(response.text, "html.parser")
 
         # 현재 주가
+        current_price = "N/A"
         try:
-            current_price = soup.find("p", class_="no_today").find("span", class_="blind").text.strip()
-            current_price = f"{int(current_price.replace(',', '')):,}원"
-        except:
-            current_price = "N/A"
+            # 현재가 요소 찾기
+            today_element = soup.select_one("div.today")
+            if today_element:
+                blind_element = today_element.select_one("span.blind")
+                if blind_element:
+                    current_price = blind_element.text.strip()
+                    current_price = f"{int(current_price.replace(',', '')):,}원"
+        except Exception as e:
+            print(f"현재가 추출 오류: {e}")
 
-        # PER, PBR (동종업종비교에서 가져오기)
+        # PER, PBR 추출
+        per, pbr = "N/A", "N/A"
         try:
-            per_element = soup.find("em", text="PER")
-            if per_element:
-                per = per_element.parent.find_next_sibling("td").text.strip()
-            else:
-                per = "N/A"
+            # 투자지표 테이블 찾기
+            tables = soup.select("table.tb_type1")
+            for table in tables:
+                # PER 찾기
+                per_td = table.find("td", text=lambda t: t and "PER" in t)
+                if per_td:
+                    per_value = per_td.find_next_sibling("td")
+                    if per_value:
+                        per = per_value.text.strip()
 
-            pbr_element = soup.find("em", text="PBR")
-            if pbr_element:
-                pbr = pbr_element.parent.find_next_sibling("td").text.strip()
-            else:
-                pbr = "N/A"
-        except:
-            per, pbr = "N/A", "N/A"
+                # PBR 찾기
+                pbr_td = table.find("td", text=lambda t: t and "PBR" in t)
+                if pbr_td:
+                    pbr_value = pbr_td.find_next_sibling("td")
+                    if pbr_value:
+                        pbr = pbr_value.text.strip()
+        except Exception as e:
+            print(f"PER/PBR 추출 오류: {e}")
 
         # 시가총액
+        market_cap = "N/A"
         try:
-            market_cap_element = soup.find("div", class_="first").find("em", text="시가총액")
-            if market_cap_element:
-                market_cap = market_cap_element.parent.find_next_sibling("td").text.strip()
-            else:
-                market_cap = "N/A"
-        except:
-            market_cap = "N/A"
+            # 시가총액 요소 찾기
+            market_cap_element = soup.select_one("div.first table tbody tr td em")
+            if market_cap_element and "시가총액" in market_cap_element.text:
+                market_cap_value = market_cap_element.parent.find_next_sibling("td")
+                if market_cap_value:
+                    market_cap = market_cap_value.text.strip()
+        except Exception as e:
+            print(f"시가총액 추출 오류: {e}")
 
         # 52주 최고/최저
+        high_52, low_52 = "N/A", "N/A"
         try:
-            price_table = soup.find("table", class_="no_info")
-            if price_table:
-                high_element = price_table.find("span", text="52주 최고")
-                if high_element:
-                    high_52 = high_element.find_next("span", class_="blind").text.strip()
-                    high_52 = f"{int(high_52.replace(',', '')):,}원"
-                else:
-                    high_52 = "N/A"
+            # 52주 최고/최저 요소 찾기
+            for item in soup.select("table.no_info td"):
+                if "52주 최고" in item.text:
+                    high_element = item.find("span", class_="blind")
+                    if high_element:
+                        high_52 = high_element.text.strip()
+                        high_52 = f"{int(high_52.replace(',', '')):,}원"
+                if "52주 최저" in item.text:
+                    low_element = item.find("span", class_="blind")
+                    if low_element:
+                        low_52 = low_element.text.strip()
+                        low_52 = f"{int(low_52.replace(',', '')):,}원"
+        except Exception as e:
+            print(f"52주 최고/최저 추출 오류: {e}")
 
-                low_element = price_table.find("span", text="52주 최저")
-                if low_element:
-                    low_52 = low_element.find_next("span", class_="blind").text.strip()
-                    low_52 = f"{int(low_52.replace(',', '')):,}원"
-                else:
-                    low_52 = "N/A"
-            else:
-                high_52, low_52 = "N/A", "N/A"
-        except:
-            high_52, low_52 = "N/A", "N/A"
-
-        # 배당수익률
+        # 나머지 지표 추출
+        div_yield, bps, debt_ratio, net_income = "N/A", "N/A", "N/A", "N/A"
         try:
-            div_yield_element = soup.find("em", text="배당수익률")
-            if div_yield_element:
-                div_yield = div_yield_element.parent.find_next_sibling("td").text.strip()
-            else:
-                div_yield = "N/A"
-        except:
-            div_yield = "N/A"
+            for table in soup.select("table.tb_type1"):
+                # 배당수익률 찾기
+                div_td = table.find("em", text=lambda t: t and "배당수익률" in t)
+                if div_td:
+                    div_value = div_td.parent.find_next_sibling("td")
+                    if div_value:
+                        div_yield = div_value.text.strip()
 
-        # 주당순이익(EPS)과 주당순자산(BPS)
-        try:
-            eps_element = soup.find("em", text="EPS")
-            if eps_element:
-                eps = eps_element.parent.find_next_sibling("td").text.strip()
-            else:
-                eps = "N/A"
+                # BPS 찾기
+                bps_td = table.find("em", text=lambda t: t and "BPS" in t)
+                if bps_td:
+                    bps_value = bps_td.parent.find_next_sibling("td")
+                    if bps_value:
+                        bps = bps_value.text.strip()
 
-            bps_element = soup.find("em", text="BPS")
-            if bps_element:
-                bps = bps_element.parent.find_next_sibling("td").text.strip()
-            else:
-                bps = "N/A"
-        except:
-            eps, bps = "N/A", "N/A"
+                # 부채비율 찾기
+                debt_td = table.find("em", text=lambda t: t and "부채비율" in t)
+                if debt_td:
+                    debt_value = debt_td.parent.find_next_sibling("td")
+                    if debt_value:
+                        debt_ratio = debt_value.text.strip()
 
-        # 부채비율
-        try:
-            debt_ratio_element = soup.find("em", text="부채비율")
-            if debt_ratio_element:
-                debt_ratio = debt_ratio_element.parent.find_next_sibling("td").text.strip()
-            else:
-                debt_ratio = "N/A"
-        except:
-            debt_ratio = "N/A"
+                # 당기순이익 찾기
+                income_td = table.find("em", text=lambda t: t and "당기순이익" in t)
+                if income_td:
+                    income_value = income_td.parent.find_next_sibling("td")
+                    if income_value:
+                        net_income = income_value.text.strip()
+        except Exception as e:
+            print(f"기타 지표 추출 오류: {e}")
 
-        # 당기순이익
-        try:
-            net_income_element = soup.find("em", text="당기순이익")
-            if net_income_element:
-                net_income = net_income_element.parent.find_next_sibling("td").text.strip()
-            else:
-                net_income = "N/A"
-        except:
-            net_income = "N/A"
+        # 디버깅 출력
+        print(f"크롤링 결과: 현재가={current_price}, PER={per}, PBR={pbr}")
 
         return {
             "현재가": current_price,
@@ -666,7 +672,85 @@ def get_stock_info_naver(ticker_krx):
         }
 
     except Exception as e:
+        print(f"네이버 금융 크롤링 중 오류 발생: {e}")
         return None
 
+
+def get_fdr_stock_info(ticker_krx):
+    """
+    FinanceDataReader를 사용하여 주식 정보를 가져오는 함수
+
+    Args:
+        ticker_krx (str): 한국 주식 코드 (예: '005930')
+
+    Returns:
+        dict: 주식 정보 딕셔너리
+    """
+    import FinanceDataReader as fdr
+    from datetime import datetime, timedelta
+
+    try:
+        # 기본 정보 딕셔너리 초기화
+        stock_info = {
+            'current_price': '정보 없음',
+            'previous_close': '정보 없음',
+            'year_high': '정보 없음',
+            'year_low': '정보 없음',
+            'market_cap': '정보 없음',
+            'per': '정보 없음',
+            'pbr': '정보 없음',
+            'dividend_yield': '정보 없음'
+        }
+
+        # 오늘 날짜와 1년 전 날짜 계산
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=365)
+
+        # 일별 주가 데이터 가져오기
+        df = fdr.DataReader(ticker_krx, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+
+        if not df.empty:
+            # 현재가 (가장 최근 종가)
+            stock_info['current_price'] = df['Close'].iloc[-1]
+
+            # 전일 종가
+            if len(df) > 1:
+                stock_info['previous_close'] = df['Close'].iloc[-2]
+
+            # 52주 최고가/최저가
+            stock_info['year_high'] = df['High'].max()
+            stock_info['year_low'] = df['Low'].min()
+
+            # 시가총액은 FDR에서 직접 제공하지 않음 (별도 API 필요)
+
+            # 기업정보 가져오기 (KRX에서 제공하는 경우)
+            try:
+                krx_info = fdr.StockListing('KRX')
+                company_info = krx_info[krx_info['Symbol'] == ticker_krx]
+
+                if not company_info.empty:
+                    # 시가총액 (MarketCap 열이 있는 경우)
+                    if 'MarketCap' in company_info.columns:
+                        stock_info['market_cap'] = company_info['MarketCap'].iloc[0]
+
+                    # PER (PER 열이 있는 경우)
+                    if 'PER' in company_info.columns:
+                        stock_info['per'] = company_info['PER'].iloc[0]
+
+                    # PBR (PBR 열이 있는 경우)
+                    if 'PBR' in company_info.columns:
+                        stock_info['pbr'] = company_info['PBR'].iloc[0]
+
+                    # 배당수익률 (DividendYield 열이 있는 경우)
+                    if 'DividendYield' in company_info.columns:
+                        stock_info['dividend_yield'] = company_info['DividendYield'].iloc[0]
+            except:
+                pass  # KRX 정보 가져오기 실패 시 기본값 유지
+
+        return stock_info
+
+    except Exception as e:
+        print(f"FDR 데이터 가져오기 오류: {e}")
+        return stock_info  # 기본값 반환
 if __name__ == '__main__':
     main()
