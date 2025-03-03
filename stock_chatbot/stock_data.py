@@ -96,8 +96,7 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     df["시간"] = pd.to_datetime(df["시간"])
 
     # 📌 ✅ 9시 ~ 15시 30분 데이터만 필터링
-    df = df[(df["시간"].dt.time >= datetime.strptime("09:00", "%H:%M").time()) & 
-            (df["시간"].dt.time <= datetime.strptime("15:30", "%H:%M").time())]
+    df = df[(df["시간"].dt.time >= datetime.time(9, 0)) & (df["시간"].dt.time <= datetime.time(15, 30))]
 
     return df
 
