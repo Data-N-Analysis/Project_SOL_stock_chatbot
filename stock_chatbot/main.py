@@ -263,7 +263,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
 
         ticker_yahoo = ticker_krx + ".KS"
 
-        # 주가 정보 수집 (향상된 방식)
+        # 향상된 주식 정보 수집 함수 사용
         stock_info = get_enhanced_stock_info(ticker_yahoo, ticker_krx)
 
         # 뉴스 요약 생성
@@ -308,8 +308,7 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         """
         news_analysis = llm.predict(prompt)
 
-        # Markdown 형식으로 요약 생성
-        # Instead of returning markdown, return HTML:
+        # 새로운 HTML 템플릿으로 업데이트 (추가 정보 포함)
         summary_html = f"""
         <div style="font-family: Arial, sans-serif; padding: 20px;">
             <h2 style="color: #1f77b4; margin-bottom: 20px;">📊 {company_name} ({ticker_krx}) 투자 분석</h2>
@@ -345,6 +344,18 @@ def generate_company_summary(company_name, news_data, openai_api_key):
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>배당수익률</strong></td>
                     <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['dividend_yield']}</td>
                 </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>BPS (주당순자산)</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['bps']}</td>
+                </tr>
+                <tr style="background-color: #f8f9fa;">
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>부채비율</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['debt_ratio']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>당기순이익</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{stock_info['net_income']}</td>
+                </tr>
             </table>
 
             <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">📰 최신 뉴스 및 분석</h3>
@@ -358,13 +369,21 @@ def generate_company_summary(company_name, news_data, openai_api_key):
         return summary_html
     except Exception as e:
         return f"<div style='color: red;'><h2>⚠️ {company_name} 정보 분석 중 오류가 발생했습니다:</h2> <p>{str(e)}</p></div>"
-
-
 # 향상된 주식 정보 수집 함수 (여러 소스에서 정보 통합)
+# 향상된 주식 정보 수집 통합 함수
 def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
+    """
+    여러 소스(yfinance, FinanceDataReader, 네이버 금융)에서 주식 정보를 수집하여 통합하는 함수
+
+    Args:
+        ticker_yahoo (str): Yahoo Finance 티커 코드 (예: '005930.KS')
+        ticker_krx (str): 한국 주식 코드 (예: '005930')
+
+    Returns:
+        dict: 통합된 주식 정보 딕셔너리
+    """
     stock_info = {}
 
-    # 두 방식으로 정보 수집 시도
     try:
         # 1. yfinance 사용
         yf_info = yf.Ticker(ticker_yahoo).info
@@ -372,18 +391,27 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
         # 2. FinanceDataReader 사용 (한국 주식 정보)
         fdr_info = get_fdr_stock_info(ticker_krx)
 
-        # 통합하여 저장 (yfinance와 FinanceDataReader 결과 병합)
-        current_price = yf_info.get('currentPrice') or fdr_info.get('current_price')
-        if current_price and current_price != '정보 없음':
-            current_price = f"{int(current_price):,}원"
-        else:
-            current_price = '정보 없음'
+        # 3. 네이버 금융 웹 크롤링 사용
+        naver_info = get_stock_info_naver(ticker_krx)
 
-        previous_close = yf_info.get('previousClose') or fdr_info.get('previous_close')
+        # 통합하여 저장 (세 소스의 결과 병합, 우선순위: 네이버 > yfinance > FinanceDataReader)
+
+        # 현재 주가 설정
+        if naver_info and naver_info.get('현재가') and naver_info.get('현재가') != 'N/A':
+            current_price = naver_info.get('현재가')
+        else:
+            current_price_val = yf_info.get('currentPrice') or fdr_info.get('current_price')
+            if current_price_val and current_price_val != '정보 없음':
+                current_price = f"{int(current_price_val):,}원"
+            else:
+                current_price = '정보 없음'
 
         # 가격 변동 계산
+        previous_close = yf_info.get('previousClose') or fdr_info.get('previous_close')
+
         if current_price != '정보 없음' and previous_close and previous_close != '정보 없음':
             try:
+                # 문자열에서 숫자 추출
                 if isinstance(current_price, str):
                     current_price_val = int(current_price.replace(',', '').replace('원', ''))
                 else:
@@ -398,48 +426,76 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
             price_change_str = ""
 
         # 52주 최고/최저 설정
-        year_high = yf_info.get('fiftyTwoWeekHigh') or fdr_info.get('year_high')
-        if year_high and year_high != '정보 없음':
-            year_high = f"{int(year_high):,}원"
+        if naver_info and naver_info.get('52주 최고') and naver_info.get('52주 최고') != 'N/A':
+            year_high = naver_info.get('52주 최고')
         else:
-            year_high = '정보 없음'
+            year_high_val = yf_info.get('fiftyTwoWeekHigh') or fdr_info.get('year_high')
+            if year_high_val and year_high_val != '정보 없음':
+                year_high = f"{int(year_high_val):,}원"
+            else:
+                year_high = '정보 없음'
 
-        year_low = yf_info.get('fiftyTwoWeekLow') or fdr_info.get('year_low')
-        if year_low and year_low != '정보 없음':
-            year_low = f"{int(year_low):,}원"
+        if naver_info and naver_info.get('52주 최저') and naver_info.get('52주 최저') != 'N/A':
+            year_low = naver_info.get('52주 최저')
         else:
-            year_low = '정보 없음'
+            year_low_val = yf_info.get('fiftyTwoWeekLow') or fdr_info.get('year_low')
+            if year_low_val and year_low_val != '정보 없음':
+                year_low = f"{int(year_low_val):,}원"
+            else:
+                year_low = '정보 없음'
 
         # 시가총액 계산
-        market_cap = yf_info.get('marketCap') or fdr_info.get('market_cap')
-        if market_cap and market_cap != '정보 없음':
-            market_cap = market_cap / 1000000000000  # 조 단위로 변환
-            market_cap_str = f"{market_cap:.2f}조 원"
+        if naver_info and naver_info.get('시가총액') and naver_info.get('시가총액') != 'N/A':
+            market_cap_str = naver_info.get('시가총액')
         else:
-            market_cap_str = "정보 없음"
+            market_cap = yf_info.get('marketCap') or fdr_info.get('market_cap')
+            if market_cap and market_cap != '정보 없음':
+                market_cap = market_cap / 1000000000000  # 조 단위로 변환
+                market_cap_str = f"{market_cap:.2f}조 원"
+            else:
+                market_cap_str = "정보 없음"
 
         # PER 및 PBR 설정
-        per = yf_info.get('trailingPE') or fdr_info.get('per')
-        if per and per != '정보 없음':
-            per = f"{per:.2f}"
+        if naver_info and naver_info.get('PER') and naver_info.get('PER') != 'N/A':
+            per = naver_info.get('PER')
         else:
-            per = '정보 없음'
+            per_val = yf_info.get('trailingPE') or fdr_info.get('per')
+            if per_val and per_val != '정보 없음':
+                per = f"{per_val:.2f}"
+            else:
+                per = '정보 없음'
 
-        pbr = yf_info.get('priceToBook') or fdr_info.get('pbr')
-        if pbr and pbr != '정보 없음':
-            pbr = f"{pbr:.2f}"
+        if naver_info and naver_info.get('PBR') and naver_info.get('PBR') != 'N/A':
+            pbr = naver_info.get('PBR')
         else:
-            pbr = '정보 없음'
+            pbr_val = yf_info.get('priceToBook') or fdr_info.get('pbr')
+            if pbr_val and pbr_val != '정보 없음':
+                pbr = f"{pbr_val:.2f}"
+            else:
+                pbr = '정보 없음'
 
         # 배당수익률 추가
-        dividend_yield = yf_info.get('dividendYield') or fdr_info.get('dividend_yield')
-        if dividend_yield and dividend_yield != '정보 없음':
-            if dividend_yield < 1:  # 소수점으로 표시된 경우
-                dividend_yield = f"{dividend_yield * 100:.2f}%"
-            else:
-                dividend_yield = f"{dividend_yield:.2f}%"
+        if naver_info and naver_info.get('배당수익률') and naver_info.get('배당수익률') != 'N/A':
+            dividend_yield = naver_info.get('배당수익률')
         else:
-            dividend_yield = '정보 없음'
+            dividend_yield_val = yf_info.get('dividendYield') or fdr_info.get('dividend_yield')
+            if dividend_yield_val and dividend_yield_val != '정보 없음':
+                if isinstance(dividend_yield_val, (int, float)) and dividend_yield_val < 1:  # 소수점으로 표시된 경우
+                    dividend_yield = f"{dividend_yield_val * 100:.2f}%"
+                else:
+                    dividend_yield = f"{dividend_yield_val:.2f}%"
+            else:
+                dividend_yield = '정보 없음'
+
+        # 네이버에서만 가져올 수 있는 추가 정보들
+        if naver_info:
+            bps = naver_info.get('BPS', '정보 없음')
+            debt_ratio = naver_info.get('부채비율', '정보 없음')
+            net_income = naver_info.get('당기순이익', '정보 없음')
+        else:
+            bps = '정보 없음'
+            debt_ratio = '정보 없음'
+            net_income = '정보 없음'
 
     except Exception as e:
         # 오류 발생 시 기본값으로 설정
@@ -451,6 +507,9 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
         per = '정보 없음'
         pbr = '정보 없음'
         dividend_yield = '정보 없음'
+        bps = '정보 없음'
+        debt_ratio = '정보 없음'
+        net_income = '정보 없음'
 
     # 결과 딕셔너리에 저장
     stock_info['current_price'] = current_price
@@ -461,82 +520,153 @@ def get_enhanced_stock_info(ticker_yahoo, ticker_krx):
     stock_info['per'] = per
     stock_info['pbr'] = pbr
     stock_info['dividend_yield'] = dividend_yield
+    stock_info['bps'] = bps
+    stock_info['debt_ratio'] = debt_ratio
+    stock_info['net_income'] = net_income
 
     return stock_info
 
 
-# FinanceDataReader를 통한 추가 주식 정보 수집 함수
-def get_fdr_stock_info(ticker_krx):
+# 네이버 금융에서 종목 정보 가져오기
+def get_stock_info_naver(stock_code):
+    """
+    네이버 금융에서 특정 종목의 주요 재무 지표를 크롤링하여 반환
+
+    Args:
+        stock_code (str): 한국 주식 코드 (예: '005930')
+
+    Returns:
+        dict: 주식 정보 딕셔너리 또는 None (실패 시)
+    """
+    url = f"https://finance.naver.com/item/main.nhn?code={stock_code}"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+    }
+
     try:
-        # 오늘 날짜 기준 데이터 가져오기
-        today = datetime.now().strftime('%Y-%m-%d')
-        last_year = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            return None  # 요청 실패 시 None 반환
 
-        # 지난 1년간의 주가 데이터 수집
-        df = fdr.DataReader(ticker_krx, last_year, today)
+        soup = BeautifulSoup(response.text, "html.parser")
 
-        if df.empty:
-            return {
-                'current_price': '정보 없음',
-                'previous_close': '정보 없음',
-                'year_high': '정보 없음',
-                'year_low': '정보 없음',
-                'per': '정보 없음',
-                'pbr': '정보 없음',
-                'dividend_yield': '정보 없음',
-                'market_cap': '정보 없음'
-            }
-
-        # 52주 최고/최저가 계산
-        year_high = df['High'].max()
-        year_low = df['Low'].min()
-
-        # 현재가 (마지막 종가)
-        current_price = df['Close'].iloc[-1]
-        previous_close = df['Close'].iloc[-2] if len(df) > 1 else current_price
-
-        # KRX 통합정보 가져오기 시도
+        # 현재 주가
         try:
-            krx_df = fdr.StockListing('KRX')
-            stock_row = krx_df[krx_df['Code'] == ticker_krx]
-
-            if not stock_row.empty:
-                per = stock_row['PER'].iloc[0]
-                pbr = stock_row['PBR'].iloc[0]
-                market_cap = stock_row['Market Cap'].iloc[0]
-            else:
-                per = '정보 없음'
-                pbr = '정보 없음'
-                market_cap = '정보 없음'
+            current_price = soup.find("p", class_="no_today").find("span", class_="blind").text.strip()
+            current_price = f"{int(current_price.replace(',', '')):,}원"
         except:
-            per = '정보 없음'
-            pbr = '정보 없음'
-            market_cap = '정보 없음'
+            current_price = "N/A"
 
-        # 배당수익률은 일반적으로 KRX 정보에서 제공하지 않음
-        dividend_yield = '정보 없음'
+        # PER, PBR (동종업종비교에서 가져오기)
+        try:
+            per_element = soup.find("em", text="PER")
+            if per_element:
+                per = per_element.parent.find_next_sibling("td").text.strip()
+            else:
+                per = "N/A"
+
+            pbr_element = soup.find("em", text="PBR")
+            if pbr_element:
+                pbr = pbr_element.parent.find_next_sibling("td").text.strip()
+            else:
+                pbr = "N/A"
+        except:
+            per, pbr = "N/A", "N/A"
+
+        # 시가총액
+        try:
+            market_cap_element = soup.find("div", class_="first").find("em", text="시가총액")
+            if market_cap_element:
+                market_cap = market_cap_element.parent.find_next_sibling("td").text.strip()
+            else:
+                market_cap = "N/A"
+        except:
+            market_cap = "N/A"
+
+        # 52주 최고/최저
+        try:
+            price_table = soup.find("table", class_="no_info")
+            if price_table:
+                high_element = price_table.find("span", text="52주 최고")
+                if high_element:
+                    high_52 = high_element.find_next("span", class_="blind").text.strip()
+                    high_52 = f"{int(high_52.replace(',', '')):,}원"
+                else:
+                    high_52 = "N/A"
+
+                low_element = price_table.find("span", text="52주 최저")
+                if low_element:
+                    low_52 = low_element.find_next("span", class_="blind").text.strip()
+                    low_52 = f"{int(low_52.replace(',', '')):,}원"
+                else:
+                    low_52 = "N/A"
+            else:
+                high_52, low_52 = "N/A", "N/A"
+        except:
+            high_52, low_52 = "N/A", "N/A"
+
+        # 배당수익률
+        try:
+            div_yield_element = soup.find("em", text="배당수익률")
+            if div_yield_element:
+                div_yield = div_yield_element.parent.find_next_sibling("td").text.strip()
+            else:
+                div_yield = "N/A"
+        except:
+            div_yield = "N/A"
+
+        # 주당순이익(EPS)과 주당순자산(BPS)
+        try:
+            eps_element = soup.find("em", text="EPS")
+            if eps_element:
+                eps = eps_element.parent.find_next_sibling("td").text.strip()
+            else:
+                eps = "N/A"
+
+            bps_element = soup.find("em", text="BPS")
+            if bps_element:
+                bps = bps_element.parent.find_next_sibling("td").text.strip()
+            else:
+                bps = "N/A"
+        except:
+            eps, bps = "N/A", "N/A"
+
+        # 부채비율
+        try:
+            debt_ratio_element = soup.find("em", text="부채비율")
+            if debt_ratio_element:
+                debt_ratio = debt_ratio_element.parent.find_next_sibling("td").text.strip()
+            else:
+                debt_ratio = "N/A"
+        except:
+            debt_ratio = "N/A"
+
+        # 당기순이익
+        try:
+            net_income_element = soup.find("em", text="당기순이익")
+            if net_income_element:
+                net_income = net_income_element.parent.find_next_sibling("td").text.strip()
+            else:
+                net_income = "N/A"
+        except:
+            net_income = "N/A"
 
         return {
-            'current_price': current_price,
-            'previous_close': previous_close,
-            'year_high': year_high,
-            'year_low': year_low,
-            'per': per,
-            'pbr': pbr,
-            'dividend_yield': dividend_yield,
-            'market_cap': market_cap
+            "현재가": current_price,
+            "PER": per,
+            "PBR": pbr,
+            "52주 최고": high_52,
+            "52주 최저": low_52,
+            "시가총액": market_cap,
+            "BPS": bps,
+            "배당수익률": div_yield,
+            "부채비율": debt_ratio,
+            "당기순이익": net_income
         }
+
     except Exception as e:
-        return {
-            'current_price': '정보 없음',
-            'previous_close': '정보 없음',
-            'year_high': '정보 없음',
-            'year_low': '정보 없음',
-            'per': '정보 없음',
-            'pbr': '정보 없음',
-            'dividend_yield': '정보 없음',
-            'market_cap': '정보 없음'
-        }
+        return None
 
 if __name__ == '__main__':
     main()
