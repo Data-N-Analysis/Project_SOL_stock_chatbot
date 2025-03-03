@@ -1,7 +1,7 @@
 import streamlit as st
 from news_crawler import crawl_news
 from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
-from stock_data import get_ticker, get_intraday_data_yahoo, get_daily_stock_data_fdr
+from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr
 from visualization import plot_stock_plotly
 import re
 from langchain_community.chat_models import ChatOpenAI
@@ -69,15 +69,12 @@ def main():
         # 분석 결과를 session_state에 저장
         st.session_state.news_data = news_data
         st.session_state.company_name = company_name
-
+        #rag 구성요소 선언
         text_chunks = get_text_chunks(news_data)
         vectorstore = get_vectorstore(text_chunks)
-
         st.session_state.conversation = create_chat_chain(vectorstore, openai_api_key)
-
         # 기업 정보 요약 생성
         st.session_state.company_summary = generate_company_summary(company_name, news_data, openai_api_key)
-
         st.session_state.processComplete = True
 
     # 분석 결과가 있으면 상단에 출력
@@ -139,30 +136,19 @@ def main():
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
         with st.spinner(f"📊 {st.session_state.company_name} ({st.session_state.selected_period}) 데이터 불러오는 중..."):
-            # 주식 데이터 가져오기
+            ticker = get_ticker(st.session_state.company_name)
+            if not ticker:
+                st.error("해당 기업의 티커 코드를 찾을 수 없습니다.")
+                return
+
             if selected_period in ["1day", "week"]:
-                ticker = get_ticker(st.session_state.company_name, source="yahoo")
-
-                if not ticker:
-                    st.error("해당 기업의 야후 파이낸스 티커 코드를 찾을 수 없습니다.")
-                    return
-
-                interval = "1m" if st.session_state.selected_period == "1day" else "5m"
-                df = get_intraday_data_yahoo(ticker,
-                                             period="5d" if st.session_state.selected_period == "week" else "1d",
-                                             interval=interval)
+                df = get_naver_fchart_minute_data(ticker, "1" if selected_period == "1day" else "5", 1 if selected_period == "1day" else 7)
             else:
-                ticker = get_ticker(st.session_state.company_name, source="fdr")
-                if not ticker:
-                    st.error("해당 기업의 FinanceDataReader 티커 코드를 찾을 수 없습니다.")
-                    return
+                df = get_daily_stock_data_fdr(ticker, selected_period)
 
-                df = get_daily_stock_data_fdr(ticker, st.session_state.selected_period)
-
-            # 주식 차트 시각화
+             # 주식 차트 시각화
             if df.empty:
-                st.warning(
-                    f"📉 {st.session_state.company_name} - 해당 기간({st.session_state.selected_period})의 거래 데이터가 없습니다.")
+                st.warning(f"📉 {st.session_state.company_name} - 해당 기간({st.session_state.selected_period})의 거래 데이터가 없습니다.")
             else:
                 plot_stock_plotly(df, st.session_state.company_name, st.session_state.selected_period)
         # 기업 정보 요약은 차트 이후에 표시
