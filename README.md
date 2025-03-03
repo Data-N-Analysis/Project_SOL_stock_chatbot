@@ -71,11 +71,12 @@
 	<img src="https://img.shields.io/badge/streamlit-006c66?style=for-the-badge&logo=streamlit&logoColor=white">
 	<img src="https://img.shields.io/badge/plotly-0080ff?style=for-the-badge&logo=plotly&logoColor=white">
 	    <br>
-	`RAG 구성요소` : 
-	<img src="https://img.shields.io/badge/sckit-learn-F7931E?style=for-the-badge&logo=sckit-learn&logoColor=white">
-	<img src="https://img.shields.io/badge/lightGBM-ffd400?style=for-the-badge&logo=&logoColor=white">
-	<img src="https://img.shields.io/badge/XGBoost-4aa8d8?style=for-the-badge&logo=&logoColor=white">
-	<img src="https://img.shields.io/badge/CatBoost-fff44f?style=for-the-badge&logo=&logoColor=white">
+	`RAG 구성요소` :
+	<img src="https://img.shields.io/badge/tiktoken-013243?style=for-the-badge&logo=tiktoken&logoColor=white">
+	<img src="https://img.shields.io/badge/RecursiveCharacterTextSplitter-F7931E?style=for-the-badge&logo=RecursiveCharacterTextSplitter&logoColor=white">
+	<img src="https://img.shields.io/badge/ko-sroberta-ffd400?style=for-the-badge&logo=ko-sroberta&logoColor=white">
+	<img src="https://img.shields.io/badge/FAISS-4aa8d8?style=for-the-badge&logo=FAISS&logoColor=white">
+	<img src="https://img.shields.io/badge/gpt-4-fff44f?style=for-the-badge&logo=gpt-4&logoColor=white">
 	    <br>
 	`협업도구` : 
 	<img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=Git&logoColor=white">
@@ -85,14 +86,14 @@
 	</div>
 
 - 역할분담 
-	- `오승태` : EDA, 시각화
-	- `이예진` : 전처리, 통계검증
-	- `서민주` : 머신러닝 학습, 모델링, 모델 최적화
+	- `오승태` : 전체적인 작업 조율, RAG 구축, streamlit 구축 
+	- `이예진` : 자료 수집, 네이버 뉴스 크롤링 및 streamlit UI 수정
+	- `서민주` : 주가 크롤링 및 시각화 담당, streamlit UI 수정
 <br/>
 
 ## ETCs
 
-웹 구현: https://exchatbot-3iksuhppyjlxsgzxgfmzdq.streamlit.app/#a287aff5
+웹 구현: <a href="https://projectsolstockchatbot-qyb8thm78wjxzsgpsqkkkh.streamlit.app/">
 
 <br/><br/>
 
