@@ -93,7 +93,7 @@
 
 ## ETCs
 
-웹 구현: "https://projectsolstockchatbot-qyb8thm78wjxzsgpsqkkkh.streamlit.app/"
+웹 구현: https://projectsolstockchatbot-qyb8thm78wjxzsgpsqkkkh.streamlit.app/
 
 <br/><br/>
 
