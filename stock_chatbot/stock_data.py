@@ -59,67 +59,56 @@ def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     Returns:
         pd.DataFrame: 분봉 데이터
     """
-    # 요청 시도 최대 횟수 제한
-    MAX_RETRIES = 3
+    now = datetime.now()
 
-    for attempt in range(MAX_RETRIES):
-        try:
-            # 현재 날짜 기준 최신 거래일 찾기
-            now = datetime.now()
-            if now.hour < 9:
-                now -= timedelta(days=1)
+    if now.hour < 9:
+        now -= timedelta(days=1)
 
-            # 주말 제외
-            while now.weekday() in [5, 6]:
-                now -= timedelta(days=1)
+    # 📌 최신 거래일 찾기 (공휴일 대응)
+    while True:
+        target_date = now.strftime("%Y-%m-%d") if days == 1 else None
+        url = f"https://fchart.stock.naver.com/sise.nhn?symbol={stock_code}&timeframe=minute&count={days * 78}&requestType=0"
+        response = requests.get(url)
 
-            # API 요청 URL 구성 (더 많은 데이터 요청)
-            url = f"https://fchart.stock.naver.com/sise.nhn?symbol={stock_code}&timeframe=minute&count={days * 200}&requestType=0"
+        if response.status_code != 200:
+            return pd.DataFrame()  # 요청 실패 시 빈 데이터 반환
 
-            # 요청 시간 제한 추가
-            response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.text, "lxml")
 
-            # 요청 실패 시 예외 발생
-            response.raise_for_status()
+        data_list = []
+        for item in soup.find_all("item"):
+            values = item["data"].split("|")
+            if len(values) < 6:
+                continue
 
-            # BeautifulSoup 대신 더 빠른 XML 파싱
-            soup = BeautifulSoup(response.text, "lxml")
+            time_str, _, _, _, close, _ = values
+            if close == "null":
+                continue
 
-            # 데이터 리스트 초기화 (리스트 컴프리헨션 사용)
-            data_list = [
-                [
-                    datetime.strptime(item["data"].split("|")[0], "%Y%m%d%H%M"),
-                    float(item["data"].split("|")[4])
-                ]
-                for item in soup.find_all("item")
-                if len(item["data"].split("|")) >= 6 and item["data"].split("|")[4] != "null"
-            ]
+            time_val = datetime.strptime(time_str, "%Y%m%d%H%M")
+            close = float(close)
 
-            # DataFrame 생성
-            df = pd.DataFrame(data_list, columns=["시간", "종가"])
+            if target_date:
+                if time_val.strftime("%Y-%m-%d") == target_date:
+                    data_list.append([time_val, close])
+            else:
+                data_list.append([time_val, close])
 
-            # 거래 시간 필터링 (9시 ~ 15시 30분)
-            df["시간"] = pd.to_datetime(df["시간"])
-            df = df[
-                (df["시간"].dt.time >= time(9, 0)) &
-                (df["시간"].dt.time <= time(15, 30))
-                ]
+        df = pd.DataFrame(data_list, columns=["시간", "종가"])
 
-            # 데이터가 있으면 반환
-            if not df.empty:
-                return df
+        # 📌 ✅ 9시 ~ 15시 30분 데이터만 필터링
+        df["시간"] = pd.to_datetime(df["시간"])
+        df = df[(df["시간"].dt.time >= time(9, 0)) & (df["시간"].dt.time <= time(15, 30))]
 
-            # 데이터가 없으면 이전 날짜로 이동
+        # ✅ 데이터가 없는 경우 → 하루 전으로 이동하여 다시 시도
+        if df.empty:
             now -= timedelta(days=1)
+            while now.weekday() in [5, 6]:  # 토요일(5) 또는 일요일(6)
+                now -= timedelta(days=1)
+        else:
+            break  # 데이터를 찾았으면 반복 종료
 
-        except (requests.RequestException, ValueError) as e:
-            st.error(f"데이터 요청 중 오류 발생 (시도 {attempt + 1}/{MAX_RETRIES}): {e}")
-
-            # 마지막 시도에서 실패하면 빈 DataFrame 반환
-            if attempt == MAX_RETRIES - 1:
-                return pd.DataFrame()
-
-    return pd.DataFrame()
+    return df
 
 # 📌 FinanceDataReader를 통해 일별 시세를 가져오는 함수
 def get_daily_stock_data_fdr(ticker, period):
