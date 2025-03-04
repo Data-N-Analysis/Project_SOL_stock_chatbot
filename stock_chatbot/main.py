@@ -1,7 +1,7 @@
 import streamlit as st
 from news_crawler import crawl_news
 from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
-from stock_data import get_ticker, get_naver_fchart_minute_data_optimized, get_daily_stock_data_fdr
+from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr
 from visualization import plot_stock_plotly
 import re
 from langchain_community.chat_models import ChatOpenAI
