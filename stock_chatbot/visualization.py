@@ -38,6 +38,25 @@ def plot_stock_plotly(df, company, period):
         df['Year'] = df["시간"].dt.year if "시간" in df.columns else df["Date"].dt.year
         df['Month'] = df["시간"].dt.month if "시간" in df.columns else df["Date"].dt.month
 
+        # 첫 번째 월 구하기
+        first_month = df['Month'].iloc[0]
+        first_year = df['Year'].iloc[0]
+
+        # 각 월의 첫 거래일 찾기 (첫 번째 월은 제외)
+        monthly_data = []
+        for (year, month), group in df.groupby(['Year', 'Month']):
+            if year == first_year and month == first_month:
+                continue
+            first_day = group.iloc[0]
+            monthly_data.append(first_day)
+
+        # 최종 tickvals 계산
+        if monthly_data:
+            monthly_df = pd.DataFrame(monthly_data)
+            tickvals = monthly_df["FormattedDate"].tolist()
+        else:
+            tickvals = []
+
         # 이전 코드와 동일한 월별 처리 로직
 
     # 🔹 1day와 week는 선 그래프, 1month와 1year는 캔들 차트 적용
