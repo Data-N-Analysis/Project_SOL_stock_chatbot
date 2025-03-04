@@ -25,11 +25,13 @@ def plot_stock_plotly(df, company, period):
         st.error("📛 데이터에 '시간' 또는 'Date' 컬럼이 없습니다.")
         return
 
-    # x축 간격 설정
+    # x축 간격 설정 개선
     if period == "1day":
-        tickvals = df.iloc[::60]["FormattedDate"].tolist()  # 1시간 간격
+        # 매 30분 간격으로 x축 레이블 표시
+        df_subset = df.iloc[::30]
+        tickvals = df_subset["FormattedDate"].tolist()
     elif period == "week":
-        tickvals = df[df["FormattedDate"].str.endswith("09:00")]["FormattedDate"].tolist()  # 9시만 표시
+        tickvals = df.iloc[::60]["FormattedDate"].tolist()  # 하루 한 번 표시
     elif period == "1month":
         tickvals = df.iloc[::4]["FormattedDate"].tolist()  # 4일 간격
     else:
@@ -55,12 +57,15 @@ def plot_stock_plotly(df, company, period):
         else:
             tickvals = []
 
+        # 이전 코드와 동일한 월별 처리 로직
+
     # 🔹 1day와 week는 선 그래프, 1month와 1year는 캔들 차트 적용
     if period in ["1day", "week"]:
         fig.add_trace(go.Scatter(
             x=df["FormattedDate"],
             y=df["종가"],
             mode="lines",
+            line=dict(color='blue', width=2),  # 라인 스타일 개선
             name="종가"
         ))
     else:
@@ -85,7 +90,9 @@ def plot_stock_plotly(df, company, period):
             tickvals=tickvals,
             tickangle=-45
         ),
-        hovermode="x unified"
+        hovermode="x unified",
+        height=600,  # 그래프 높이 조정
+        margin=dict(l=50, r=50, t=50, b=50)  # 마진 조정
     )
 
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)

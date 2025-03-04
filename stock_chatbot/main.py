@@ -45,12 +45,6 @@ def main():
         days = st.number_input("최근 며칠 동안의 기사를 검색할까요?", min_value=1, max_value=30, value=7)
         process = st.button("분석 시작")
 
-    if not process:
-        st.markdown(
-            "<p style='margin: 0;'>원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다!</p>"
-            "<p style='margin: 0;'>⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥</p>",
-            unsafe_allow_html=True
-        )
 
     # 분석 시작 버튼 클릭 시
     if process:
@@ -76,6 +70,12 @@ def main():
         # 기업 정보 요약 생성
         st.session_state.company_summary = generate_company_summary(company_name, news_data, openai_api_key)
         st.session_state.processComplete = True
+    else :
+        st.markdown(
+            "<p style='margin: 0;'>원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다!</p>"
+            "<p style='margin: 0;'>⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥</p>",
+            unsafe_allow_html=True
+        )
 
     # 분석 결과가 있으면 상단에 출력
     if st.session_state.processComplete and st.session_state.company_name:
@@ -136,15 +136,16 @@ def main():
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
         with st.spinner(f"📊 {st.session_state.company_name} ({st.session_state.selected_period}) 데이터 불러오는 중..."):
-            ticker = get_ticker(st.session_state.company_name)
+            ticker = get_ticker(st.session_state.company_name, source="fdr")
             if not ticker:
                 st.error("해당 기업의 티커 코드를 찾을 수 없습니다.")
                 return
 
             if selected_period in ["1day", "week"]:
-                df = get_naver_fchart_minute_data(ticker, "1" if selected_period == "1day" else "5", 1 if selected_period == "1day" else 7)
-            else:
-                df = get_daily_stock_data_fdr(ticker, selected_period)
+                df = get_naver_fchart_minute_data(ticker, days=1 if selected_period == "1day" else 7)
+
+            else :
+                df = get_daily_stock_data_fdr(ticker, period=selected_period)
 
              # 주식 차트 시각화
             if df.empty:

@@ -49,7 +49,15 @@ def get_ticker(company, source="yahoo"):
 # 📌 네이버 Fchart API에서 분봉 데이터 가져오기 (최신 거래일 탐색 포함)
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     """
-    네이버 금융 Fchart API에서 분봉 데이터를 가져와서 DataFrame으로 변환
+    네이버 금융 Fchart API에서 분봉 데이터를 더 효율적으로 가져오기
+
+    Args:
+        stock_code (str): 종목 코드
+        minute (str): 분 단위 (기본 1분)
+        days (int): 조회 일수
+
+    Returns:
+        pd.DataFrame: 분봉 데이터
     """
     now = datetime.now()
 
