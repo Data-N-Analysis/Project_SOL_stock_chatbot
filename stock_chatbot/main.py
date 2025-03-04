@@ -45,12 +45,6 @@ def main():
         days = st.number_input("최근 며칠 동안의 기사를 검색할까요?", min_value=1, max_value=30, value=7)
         process = st.button("분석 시작")
 
-        if not process:
-            st.markdown(
-                "<p style='margin: 0;'>원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다!</p>"
-                "<p style='margin: 0;'>⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥</p>",
-                unsafe_allow_html=True
-            )
 
     # 분석 시작 버튼 클릭 시
     if process:
@@ -76,6 +70,12 @@ def main():
         # 기업 정보 요약 생성
         st.session_state.company_summary = generate_company_summary(company_name, news_data, openai_api_key)
         st.session_state.processComplete = True
+    else :
+        st.markdown(
+            "<p style='margin: 0;'>원하는 기업명을 입력하면 주가, 재무 정보, 최신 뉴스까지 한눈에 분석해드립니다!</p>"
+            "<p style='margin: 0;'>⏳ 기간(일수)도 함께 입력하면 더 정확한 시장 동향을 알려드릴게요! 🚀🔥</p>",
+            unsafe_allow_html=True
+        )
 
     # 분석 결과가 있으면 상단에 출력
     if st.session_state.processComplete and st.session_state.company_name:
