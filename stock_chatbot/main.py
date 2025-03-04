@@ -142,7 +142,7 @@ def main():
                 return
 
             if selected_period in ["1day", "week"]:
-                df = get_naver_fchart_minute_data_optimized(ticker, days=1 if selected_period == "1day" else 7)
+                df = get_naver_fchart_minute_data(ticker, days=1 if selected_period == "1day" else 7)
 
             else :
                 df = get_daily_stock_data_fdr(ticker, period=selected_period)
