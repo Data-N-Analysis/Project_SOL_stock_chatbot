@@ -136,15 +136,16 @@ def main():
         st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
         with st.spinner(f"📊 {st.session_state.company_name} ({st.session_state.selected_period}) 데이터 불러오는 중..."):
-            ticker = get_ticker(st.session_state.company_name)
+            ticker = get_ticker(st.session_state.company_name, source="fdr")
             if not ticker:
                 st.error("해당 기업의 티커 코드를 찾을 수 없습니다.")
                 return
 
             if selected_period in ["1day", "week"]:
-                df = get_naver_fchart_minute_data(ticker, "1" if selected_period == "1day" else "5", 1 if selected_period == "1day" else 7)
-            else:
-                df = get_daily_stock_data_fdr(ticker, selected_period)
+                df = get_naver_fchart_minute_data(ticker, days=1 if selected_period == "1day" else 7)
+            elif selected_period in ["1month", "1year"]:
+                df = get_daily_stock_data_fdr(ticker, period=selected_period)
+            else :
 
              # 주식 차트 시각화
             if df.empty:
