@@ -80,7 +80,7 @@ def main():
     # 분석 결과가 있으면 상단에 출력
     if st.session_state.processComplete and st.session_state.company_name:
         # 주가 차트 표시
-        st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
+        st.markdown(f"<h4>📈 {st.session_state.company_name} 최근 주가 추이</h4>", unsafe_allow_html=True)
 
         # ✅ 애니메이션 포함한 CSS 스타일 추가 (기간 선택 글씨 제거)
         st.markdown("""
