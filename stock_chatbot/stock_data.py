@@ -34,17 +34,29 @@ def get_ticker(company, source="yahoo"):
     """
     try:
         listing = fdr.StockListing('KRX')
-        ticker_row = listing[listing["Name"].str.strip() == company.strip()]
-        if not ticker_row.empty:
-            krx_ticker = str(ticker_row.iloc[0]["Code"]).zfill(6)
+
+        # 대소문자 및 공백 무시하고 부분 검색
+        filtered_listing = listing[
+            listing["Name"]
+            .str.strip()
+            .str.lower()
+            .str.replace(" ", "")
+            .str.contains(company.strip().lower().replace(" ", ""))
+        ]
+
+        if not filtered_listing.empty:
+            # 첫 번째 일치하는 항목 선택
+            ticker_row = filtered_listing.iloc[0]
+            krx_ticker = str(ticker_row["Code"]).zfill(6)
+
             if source == "yahoo":
                 return krx_ticker + ".KS"  # 야후 파이낸스용 티커 변환
             return krx_ticker  # FinanceDataReader용 티커
+
         return None
     except Exception as e:
         st.error(f"티커 조회 중 오류 발생: {e}")
         return None
-
 
 # 📌 네이버 Fchart API에서 분봉 데이터 가져오기 (최신 거래일 탐색 포함)
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
