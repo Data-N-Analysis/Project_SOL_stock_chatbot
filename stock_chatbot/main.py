@@ -68,7 +68,16 @@ def main():
         ticker_krx = get_ticker(company_name, source="fdr")
         ticker_yahoo = ticker_krx + ".KS"
 
-        financial_data = [get_enhanced_stock_info(ticker_krx,ticker_yahoo)]
+        # 결과 확인을 위해 변수에 저장
+        stock_info = get_enhanced_stock_info(ticker_krx, ticker_yahoo)
+        st.write("### 재무 데이터 원본 확인")
+        st.write(stock_info)  # 데이터 확인
+
+        # None이 아닌 경우에만 리스트에 추가
+        financial_data = [stock_info] if stock_info is not None else []
+
+        # None이 아닌 경우에만 리스트에 추가
+        financial_data = [stock_info] if stock_info is not None else []
         text_chunks = get_text_chunks(news_data,financial_data)
 
         # 벡터 저장소 생성
