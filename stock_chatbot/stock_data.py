@@ -35,35 +35,53 @@ def get_ticker(company, source="yahoo"):
         str: 티커 코드
     """
     try:
+        # 데이터 로드
         listing = fdr.StockListing('KRX')
 
-        # 유니코드 정규화 및 공백 제거, 대소문자 무시
+        # 디버깅: 입력된 회사명 출력
+        print(f"검색할 회사명: '{company}'")
+
+        # 입력된 회사명 정규화
         normalized_company = company.strip().lower().replace(" ", "")
 
-        # 유니코드 정규화를 적용한 검색
-        filtered_listing = listing[
-            listing["Name"]
+        # 디버깅: 모든 기업명 출력
+        print("전체 기업명 목록:")
+        for name in listing['Name'].unique():
+            print(name)
+
+        # 부분 일치 및 전체 일치 검색
+        exact_match = listing[listing['Name'].str.strip() == company.strip()]
+        partial_match = listing[
+            listing['Name']
             .str.strip()
             .str.lower()
-            .str.normalize('NFKD')  # 유니코드 정규화
             .str.replace(" ", "")
             .str.contains(normalized_company)
         ]
 
-        if not filtered_listing.empty:
-            # 첫 번째 일치하는 항목 선택
-            ticker_row = filtered_listing.iloc[0]
-            krx_ticker = str(ticker_row["Code"]).zfill(6)
+        # 디버깅: 매칭 결과 출력
+        print(f"정확한 일치 결과: {len(exact_match)}")
+        print(f"부분 일치 결과: {len(partial_match)}")
 
-            if source == "yahoo":
-                return krx_ticker + ".KS"  # 야후 파이낸스용 티커 변환
-            return krx_ticker  # FinanceDataReader용 티커
+        # 매칭 로직
+        if not exact_match.empty:
+            ticker_row = exact_match.iloc[0]
+        elif not partial_match.empty:
+            ticker_row = partial_match.iloc[0]
+        else:
+            print("일치하는 기업을 찾을 수 없습니다.")
+            return None
 
-        return None
+        # 티커 코드 생성
+        krx_ticker = str(ticker_row["Code"]).zfill(6)
+
+        if source == "yahoo":
+            return krx_ticker + ".KS"  # 야후 파이낸스용 티커 변환
+        return krx_ticker  # FinanceDataReader용 티커
+
     except Exception as e:
-        st.error(f"티커 조회 중 오류 발생: {e}")
+        print(f"티커 조회 중 오류 발생: {e}")
         return None
-
 # 📌 네이버 Fchart API에서 분봉 데이터 가져오기 (최신 거래일 탐색 포함)
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     """
