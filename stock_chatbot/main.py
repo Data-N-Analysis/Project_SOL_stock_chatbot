@@ -182,8 +182,11 @@ def main():
                 # HTML 형식으로 변환된 마크다운 콘텐츠 표시
                 st.markdown(message["content"], unsafe_allow_html=True)
 
-                # 소스 문서 표시 (응답인 경우에만)
-                if message["role"] == "assistant" and "source_documents" in message:
+                # 소스 문서 표시 (응답인 경우에만, 그리고 소스 문서가 존재하고 비어있지 않을 때만)
+                if (message["role"] == "assistant" and
+                        "source_documents" in message and
+                        message["source_documents"] and  # 소스 문서가 존재하고
+                        len(message["source_documents"]) > 0):  # 비어있지 않을 때
                     with st.expander("참고 뉴스 확인"):
                         for doc in message["source_documents"]:
                             st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
@@ -208,11 +211,12 @@ def main():
                             # 응답 표시 (HTML 허용)
                             st.markdown(response, unsafe_allow_html=True)
 
-                            # 소스 문서 표시
-                            with st.expander("참고 뉴스 확인"):
-                                for doc in result['source_documents']:
-                                    st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
 
+                            # 소스 문서 표시 (소스 문서가 존재하고 비어있지 않을 때만)
+                            if (result.get('source_documents') and len(result.get('source_documents')) > 0):
+                                with st.expander("참고 뉴스 확인"):
+                                    for doc in result['source_documents']:
+                                        st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
                             # 응답을 대화 히스토리에 추가
                             st.session_state.chat_history.append({
                                 "role": "assistant",
