@@ -68,7 +68,7 @@ def main():
         ticker_krx = get_ticker(company_name, source="fdr")
         ticker_yahoo = ticker_krx + ".KS"
 
-        financial_data = get_enhanced_stock_info(ticker_krx,ticker_yahoo)
+        financial_data = [get_enhanced_stock_info(ticker_krx,ticker_yahoo)]
         text_chunks = get_text_chunks(news_data,financial_data)
 
         # 벡터 저장소 생성
