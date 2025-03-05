@@ -20,7 +20,7 @@ def update_period():
 
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
-    st.title("📈 기업 정보 분석 QA Chat")
+    st.title("📑 기업 정보 분석 QA Chat")
 
     # 세션 상태 초기화
     if "conversation" not in st.session_state:
@@ -80,7 +80,7 @@ def main():
     # 분석 결과가 있으면 상단에 출력
     if st.session_state.processComplete and st.session_state.company_name:
         # 주가 차트 표시
-        st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
+        st.markdown(f"<h4>📈 {st.session_state.company_name} 최근 주가 추이</h4>", unsafe_allow_html=True)
 
         # ✅ 애니메이션 포함한 CSS 스타일 추가 (기간 선택 글씨 제거)
         st.markdown("""
@@ -89,7 +89,7 @@ def main():
             div[role="radiogroup"] {
                 display: flex;
                 justify-content: center;
-                gap: 20px;
+                gap: 10px; /* 간격 줄이기 */
                 margin-top: -10px; /* 위쪽 여백 줄이기 */
             }
 
@@ -97,11 +97,11 @@ def main():
             div[role="radiogroup"] label {
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                padding: 10px 15px;
+                gap: 5px;
+                padding: 6px 10px; /* 패딩 줄이기 */
                 border: 2px solid #ddd;
-                border-radius: 20px;
-                font-size: 16px;
+                border-radius: 15px; /* 둥근 정도 줄이기 */
+                font-size: 14px; /* 글자 크기 줄이기 */
                 font-weight: bold;
                 cursor: pointer;
                 transition: all 0.3s ease-in-out;
@@ -112,7 +112,7 @@ def main():
                 background-color: #ff4757;
                 color: white;
                 border-color: #e84118;
-                transform: scale(1.1);
+                transform: scale(1.05); /* 크기 확대 비율 줄이기 */
             }
 
             /* 마우스 올렸을 때 (호버 효과) */
@@ -139,12 +139,11 @@ def main():
             ticker = get_ticker(st.session_state.company_name, source="fdr")
             if not ticker:
                 st.error("해당 기업의 티커 코드를 찾을 수 없습니다.")
-                return
+                st.stop()
 
             if selected_period in ["1day", "week"]:
                 df = get_naver_fchart_minute_data(ticker, days=1 if selected_period == "1day" else 7)
-
-            else :
+            else:
                 df = get_daily_stock_data_fdr(ticker, period=selected_period)
 
              # 주식 차트 시각화
