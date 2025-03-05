@@ -170,8 +170,11 @@ def standardize_company_name(company_name):
     Returns:
         str: 표준화된 회사명
     """
+    # 유니코드 정규화
+    normalized_name = unicodedata.normalize('NFC', company_name)
+
     # 단어별로 나누어 첫 글자를 대문자로 변경
-    words = company_name.split()
+    words = normalized_name.split()
     standardized_words = [
         word.upper() if word.isalpha() and len(word) <= 2 else
         word.capitalize()
