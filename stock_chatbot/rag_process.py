@@ -33,25 +33,51 @@ def get_text_chunks(news_data, financial_data):
     Returns:
         list: 처리된 통합 텍스트 청크
     """
+
+    def format_financial_text(item):
+        """
+        재무 데이터를 상세 텍스트로 변환하는 내부 함수
+        """
+        text = "기업 재무 데이터 상세 분석:\n"
+
+        # 각 재무 지표를 안전하게 추가
+        financial_keys = [
+            ('current_price', '현재 주가'),
+            ('per', 'PER'),
+            ('pbr', 'PBR'),
+            ('year_high', '52주 최고가'),
+            ('year_low', '52주 최저가'),
+            ('market_cap_str', '시가총액'),
+            ('dividend_yield', '배당수익률'),
+            ('debt_ratio', '부채비율'),
+            ('net_income', '당기순이익')
+        ]
+
+        for key, label in financial_keys:
+            value = item.get(key, 'N/A')
+            if value is not None and value != 'N/A':
+                text += f"{label}: {value}\n"
+
+        # 디버깅을 위한 추가 정보
+        print(f"변환된 재무 텍스트:\n{text}")
+
+        return text
+
     # 뉴스 데이터 처리
     news_texts = [f"{item['title']}\n{item['content']}" for item in news_data]
     news_metadatas = [{"source": "news", "link": item["link"]} for item in news_data]
 
-    # 재무 데이터 처리
+    # 재무 데이터 처리 (강화된 안전성)
     financial_texts = [
-        f"재무 지표 요약:\n"
-        f"현재 주가: {item.get('current_price', 'N/A')}\n"
-        f"PER: {item.get('per', 'N/A')}\n"
-        f"PBR: {item.get('pbr', 'N/A')}\n"
-        f"52주 최고가: {item.get('year_high', 'N/A')}\n"
-        f"52주 최저가: {item.get('year_low', 'N/A')}\n"
-        f"시가총액: {item.get('market_cap_str', 'N/A')}\n"
-        f"배당수익률: {item.get('dividend_yield', 'N/A')}\n"
-        f"부채비율: {item.get('debt_ratio', 'N/A')}\n"
-        f"당기순이익: {item.get('net_income', 'N/A')}"
+        format_financial_text(item)
         for item in financial_data
+        if item is not None
     ]
-    financial_metadatas = [{"source": "financial"} for _ in financial_data]
+    financial_metadatas = [{"source": "financial"} for _ in financial_texts]
+
+    # 디버깅: 생성된 텍스트 수 확인
+    print(f"생성된 뉴스 텍스트 수: {len(news_texts)}")
+    print(f"생성된 재무 텍스트 수: {len(financial_texts)}")
 
     # 전체 텍스트와 메타데이터 통합
     all_texts = news_texts + financial_texts
@@ -62,7 +88,12 @@ def get_text_chunks(news_data, financial_data):
         chunk_overlap=100,
         length_function=tiktoken_len
     )
-    return text_splitter.create_documents(all_texts, metadatas=all_metadatas)
+
+    # 디버깅: 최종 청크 생성 확인
+    chunks = text_splitter.create_documents(all_texts, metadatas=all_metadatas)
+    print(f"최종 생성된 청크 수: {len(chunks)}")
+
+    return chunks
 
 
 def get_vectorstore(text_chunks):
@@ -75,6 +106,10 @@ def get_vectorstore(text_chunks):
     Returns:
         FAISS: 생성된 벡터 저장소
     """
+    # 디버깅: 청크 내용 출력
+    for i, chunk in enumerate(text_chunks, 1):
+        print(f"청크 {i}:\n{chunk.page_content}\n---")
+
     embeddings = HuggingFaceEmbeddings(
         model_name="jhgan/ko-sroberta-multitask",
         model_kwargs={'device': 'cpu'},
