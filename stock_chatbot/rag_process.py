@@ -1,6 +1,4 @@
 import tiktoken
-import json
-import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
@@ -8,7 +6,6 @@ from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
-
 
 def tiktoken_len(text):
     """
@@ -36,18 +33,6 @@ def get_text_chunks(news_data, financial_data):
     Returns:
         list: 처리된 통합 텍스트 청크
     """
-    # 디버깅 섹션 시작
-    with st.expander("재무 데이터 디버깅 정보", expanded=False):
-        st.write("## 받은 재무 데이터")
-        st.write(f"재무 데이터 항목 수: {len(financial_data)}")
-
-        for idx, item in enumerate(financial_data):
-            st.write(f"### 재무 데이터 항목 {idx + 1}")
-            try:
-                st.json(item)  # JSON 형식으로 예쁘게 출력
-            except Exception as e:
-                st.error(f"데이터 출력 오류: {e}")
-                st.write(str(item))
 
     def format_financial_text(item):
         """
@@ -73,6 +58,9 @@ def get_text_chunks(news_data, financial_data):
             if value is not None and value != 'N/A':
                 text += f"{label}: {value}\n"
 
+        # 디버깅을 위한 추가 정보
+        print(f"변환된 재무 텍스트:\n{text}")
+
         return text
 
     # 뉴스 데이터 처리
@@ -87,16 +75,9 @@ def get_text_chunks(news_data, financial_data):
     ]
     financial_metadatas = [{"source": "financial"} for _ in financial_texts]
 
-    # 디버깅: 텍스트 변환 결과
-    with st.expander("변환된 텍스트 디버깅", expanded=False):
-        st.write(f"생성된 뉴스 텍스트 수: {len(news_texts)}")
-        st.write(f"생성된 재무 텍스트 수: {len(financial_texts)}")
-
-        if financial_texts:
-            st.write("### 변환된 재무 텍스트 샘플")
-            st.text(financial_texts[0])
-        else:
-            st.warning("변환된 재무 텍스트가 없습니다!")
+    # 디버깅: 생성된 텍스트 수 확인
+    print(f"생성된 뉴스 텍스트 수: {len(news_texts)}")
+    print(f"생성된 재무 텍스트 수: {len(financial_texts)}")
 
     # 전체 텍스트와 메타데이터 통합
     all_texts = news_texts + financial_texts
@@ -108,23 +89,9 @@ def get_text_chunks(news_data, financial_data):
         length_function=tiktoken_len
     )
 
-    # 청크 생성
+    # 디버깅: 최종 청크 생성 확인
     chunks = text_splitter.create_documents(all_texts, metadatas=all_metadatas)
-
-    # 디버깅: 최종 청크 정보
-    with st.expander("생성된 청크 디버깅", expanded=False):
-        st.write(f"총 생성된 청크 수: {len(chunks)}")
-
-        # 청크 분류 (뉴스/재무)
-        news_chunks = [chunk for chunk in chunks if chunk.metadata.get('source') == 'news']
-        financial_chunks = [chunk for chunk in chunks if chunk.metadata.get('source') == 'financial']
-
-        st.write(f"뉴스 청크 수: {len(news_chunks)}")
-        st.write(f"재무 청크 수: {len(financial_chunks)}")
-
-        if financial_chunks:
-            st.write("### 재무 청크 샘플")
-            st.text(financial_chunks[0].page_content)
+    print(f"최종 생성된 청크 수: {len(chunks)}")
 
     return chunks
 
@@ -139,34 +106,16 @@ def get_vectorstore(text_chunks):
     Returns:
         FAISS: 생성된 벡터 저장소
     """
-    # 디버깅: 벡터 저장소 생성 정보
-    with st.expander("벡터 저장소 디버깅", expanded=False):
-        st.write(f"벡터화할 텍스트 청크 수: {len(text_chunks)}")
-
-        # 청크의 메타데이터 소스 확인
-        sources = [chunk.metadata.get('source', 'unknown') for chunk in text_chunks]
-        source_counts = {}
-        for source in sources:
-            source_counts[source] = source_counts.get(source, 0) + 1
-
-        st.write("### 청크 소스 분포")
-        for source, count in source_counts.items():
-            st.write(f"{source}: {count}개")
+    # 디버깅: 청크 내용 출력
+    for i, chunk in enumerate(text_chunks, 1):
+        print(f"청크 {i}:\n{chunk.page_content}\n---")
 
     embeddings = HuggingFaceEmbeddings(
         model_name="jhgan/ko-sroberta-multitask",
         model_kwargs={'device': 'cpu'},
         encode_kwargs={'normalize_embeddings': True}
     )
-
-    vector_store = FAISS.from_documents(text_chunks, embeddings)
-
-    # 디버깅: 벡터 저장소 생성 완료
-    with st.expander("벡터 저장소 생성 완료", expanded=False):
-        st.write("벡터 저장소가 성공적으로 생성되었습니다.")
-        st.write(f"인덱스 크기: {vector_store.index.ntotal}")
-
-    return vector_store
+    return FAISS.from_documents(text_chunks, embeddings)
 
 
 def create_financial_aware_prompt_template():
@@ -213,22 +162,12 @@ def create_chat_chain(vectorstore, openai_api_key):
     Returns:
         ConversationalRetrievalChain: 생성된 대화 체인
     """
-    # 디버깅: 대화 체인 생성 정보
-    with st.expander("대화 체인 디버깅", expanded=False):
-        st.write("대화 체인 생성 시작")
-        st.write(f"벡터 저장소 크기: {vectorstore.index.ntotal}")
-
     llm = ChatOpenAI(openai_api_key=openai_api_key, model_name='gpt-4', temperature=0.3)
 
     # 맞춤형 프롬프트 템플릿 적용
     custom_prompt = create_financial_aware_prompt_template()
 
-    # 디버깅: 프롬프트 템플릿 확인
-    with st.expander("프롬프트 템플릿 디버깅", expanded=False):
-        st.write("### 사용 중인 프롬프트 템플릿")
-        st.text(custom_prompt.template)
-
-    conversation_chain = ConversationalRetrievalChain.from_llm(
+    return ConversationalRetrievalChain.from_llm(
         llm=llm,
         chain_type="stuff",
         retriever=vectorstore.as_retriever(),
@@ -237,9 +176,3 @@ def create_chat_chain(vectorstore, openai_api_key):
         return_source_documents=True,
         combine_docs_chain_kwargs={'prompt': custom_prompt}
     )
-
-    # 디버깅: 대화 체인 생성 완료
-    with st.expander("대화 체인 생성 완료", expanded=False):
-        st.write("대화 체인이 성공적으로 생성되었습니다.")
-
-    return conversation_chain
