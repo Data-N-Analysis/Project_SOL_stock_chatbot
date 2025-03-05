@@ -63,8 +63,10 @@ def main():
         # 분석 결과를 session_state에 저장
         st.session_state.news_data = news_data
         st.session_state.company_name = standardize_company_name(company_name)
+
         # 텍스트 청크 생성
-        text_chunks = get_text_chunks(st.session_state.news_data, get_stock_info_naver(get_ticker(st.session_state.company_name, source="fdr")))
+        financial_data = get_stock_info_naver(get_ticker(st.session_state.company_name, source="fdr")
+        text_chunks = get_text_chunks(news_data,financial_data)
 
         # 벡터 저장소 생성
         vectorstore = get_vectorstore(text_chunks)
