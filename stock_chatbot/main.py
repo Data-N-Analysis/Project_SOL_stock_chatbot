@@ -63,9 +63,13 @@ def main():
         # 분석 결과를 session_state에 저장
         st.session_state.news_data = news_data
         st.session_state.company_name = standardize_company_name(company_name)
-        #rag 구성요소 선언
-        text_chunks = get_text_chunks(news_data)
+        # 텍스트 청크 생성
+        text_chunks = get_text_chunks(st.session_state.news_data, get_stock_info_naver(get_ticker(st.session_state.company_name, source="fdr")))
+
+        # 벡터 저장소 생성
         vectorstore = get_vectorstore(text_chunks)
+
+        # 대화 체인 생성
         st.session_state.conversation = create_chat_chain(vectorstore, openai_api_key)
         # 기업 정보 요약 생성
         st.session_state.company_summary = generate_company_summary(company_name, news_data, openai_api_key)
@@ -849,6 +853,8 @@ def get_fdr_stock_info(ticker_krx):
     except Exception as e:
         print(f"FDR 데이터 가져오기 오류: {e}")
         return stock_info  # 기본값 반환
+
+
 
 
 if __name__ == '__main__':
