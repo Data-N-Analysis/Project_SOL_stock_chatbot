@@ -63,12 +63,21 @@ def main():
         # 분석 결과를 session_state에 저장
         st.session_state.news_data = news_data
         st.session_state.company_name = standardize_company_name(company_name)
-        #rag 구성요소 선언
-        text_chunks = get_text_chunks(news_data)
+
+        # 텍스트 청크 생성
+        ticker_krx = get_ticker(company_name, source="fdr")
+        ticker_yahoo = ticker_krx + ".KS"
+
+        financial_data = [get_enhanced_stock_info(ticker_krx,ticker_yahoo)]
+        text_chunks = get_text_chunks(news_data,financial_data)
+
+        # 벡터 저장소 생성
         vectorstore = get_vectorstore(text_chunks)
+
+        # 대화 체인 생성
         st.session_state.conversation = create_chat_chain(vectorstore, openai_api_key)
         # 기업 정보 요약 생성
-        st.session_state.company_summary = generate_company_summary(company_name, news_data, openai_api_key)
+        st.session_state.company_summary = generate_company_summary(st.session_state.company_name, news_data, openai_api_key)
         st.session_state.processComplete = True
     else :
         st.markdown(
@@ -173,8 +182,11 @@ def main():
                 # HTML 형식으로 변환된 마크다운 콘텐츠 표시
                 st.markdown(message["content"], unsafe_allow_html=True)
 
-                # 소스 문서 표시 (응답인 경우에만)
-                if message["role"] == "assistant" and "source_documents" in message:
+                # 소스 문서 표시 (응답인 경우에만, 그리고 소스 문서가 존재하고 비어있지 않을 때만)
+                if (message["role"] == "assistant" and
+                        "source_documents" in message and
+                        message["source_documents"] and  # 소스 문서가 존재하고
+                        len(message["source_documents"]) > 0):  # 비어있지 않을 때
                     with st.expander("참고 뉴스 확인"):
                         for doc in message["source_documents"]:
                             st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
@@ -199,11 +211,12 @@ def main():
                             # 응답 표시 (HTML 허용)
                             st.markdown(response, unsafe_allow_html=True)
 
-                            # 소스 문서 표시
-                            with st.expander("참고 뉴스 확인"):
-                                for doc in result['source_documents']:
-                                    st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
 
+                            # 소스 문서 표시 (소스 문서가 존재하고 비어있지 않을 때만)
+                            if (result.get('source_documents') and len(result.get('source_documents')) > 0):
+                                with st.expander("참고 뉴스 확인"):
+                                    for doc in result['source_documents']:
+                                        st.markdown(f"- [{doc.metadata['source']}]({doc.metadata['source']})")
                             # 응답을 대화 히스토리에 추가
                             st.session_state.chat_history.append({
                                 "role": "assistant",
@@ -848,6 +861,8 @@ def get_fdr_stock_info(ticker_krx):
     except Exception as e:
         print(f"FDR 데이터 가져오기 오류: {e}")
         return stock_info  # 기본값 반환
+
+
 
 
 if __name__ == '__main__':
