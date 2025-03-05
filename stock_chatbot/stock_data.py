@@ -6,6 +6,8 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 from datetime import time
+import unicodedata
+
 def get_recent_trading_day():
     """
     가장 최근 거래일을 구하는 함수
@@ -35,13 +37,17 @@ def get_ticker(company, source="yahoo"):
     try:
         listing = fdr.StockListing('KRX')
 
-        # 대소문자 및 공백 무시하고 부분 검색
+        # 유니코드 정규화 및 공백 제거, 대소문자 무시
+        normalized_company = company.strip().lower().replace(" ", "")
+
+        # 유니코드 정규화를 적용한 검색
         filtered_listing = listing[
             listing["Name"]
             .str.strip()
             .str.lower()
+            .str.normalize('NFKD')  # 유니코드 정규화
             .str.replace(" ", "")
-            .str.contains(company.strip().lower().replace(" ", ""))
+            .str.contains(normalized_company)
         ]
 
         if not filtered_listing.empty:
