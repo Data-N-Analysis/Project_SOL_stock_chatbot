@@ -65,7 +65,7 @@ def main():
         st.session_state.company_name = standardize_company_name(company_name)
 
         # 텍스트 청크 생성
-        financial_data = get_stock_info_naver(get_ticker(st.session_state.company_name, source="fdr")
+        financial_data = get_stock_info_naver(get_ticker(st.session_state.company_name, source="fdr"))
         text_chunks = get_text_chunks(news_data,financial_data)
 
         # 벡터 저장소 생성
