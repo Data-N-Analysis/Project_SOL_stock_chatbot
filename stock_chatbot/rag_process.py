@@ -60,7 +60,7 @@ def get_text_chunks(news_data, financial_data):
                 text += f"{label}: {value}\n"
 
         # 디버깅을 위한 추가 정보
-        print(f"변환된 재무 텍스트:\n{text}")
+        #print(f"변환된 재무 텍스트:\n{text}")
 
         return text
 
@@ -77,8 +77,8 @@ def get_text_chunks(news_data, financial_data):
     financial_metadatas = [{"source": "financial"} for _ in financial_texts]
 
     # 디버깅: 생성된 텍스트 수 확인
-    print(f"생성된 뉴스 텍스트 수: {len(news_texts)}")
-    print(f"생성된 재무 텍스트 수: {len(financial_texts)}")
+    #print(f"생성된 뉴스 텍스트 수: {len(news_texts)}")
+    #print(f"생성된 재무 텍스트 수: {len(financial_texts)}")
 
     # 전체 텍스트와 메타데이터 통합
     all_texts = news_texts + financial_texts
