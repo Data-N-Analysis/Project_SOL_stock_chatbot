@@ -40,15 +40,15 @@ def get_text_chunks(news_data, financial_data):
     # 재무 데이터 처리
     financial_texts = [
         f"재무 지표 요약:\n"
-        f"현재 주가: {item.get('현재가', 'N/A')}\n"
-        f"PER: {item.get('PER', 'N/A')}\n"
-        f"PBR: {item.get('PBR', 'N/A')}\n"
-        f"52주 최고가: {item.get('52주 최고', 'N/A')}\n"
-        f"52주 최저가: {item.get('52주 최저', 'N/A')}\n"
-        f"시가총액: {item.get('시가총액', 'N/A')}\n"
-        f"배당수익률: {item.get('배당수익률', 'N/A')}\n"
-        f"부채비율: {item.get('부채비율', 'N/A')}\n"
-        f"당기순이익: {item.get('당기순이익', 'N/A')}"
+        f"현재 주가: {item.get('current_price', 'N/A')}\n"
+        f"PER: {item.get('per', 'N/A')}\n"
+        f"PBR: {item.get('pbr', 'N/A')}\n"
+        f"52주 최고가: {item.get('year_high', 'N/A')}\n"
+        f"52주 최저가: {item.get('year_low', 'N/A')}\n"
+        f"시가총액: {item.get('market_cap_str', 'N/A')}\n"
+        f"배당수익률: {item.get('dividend_yield', 'N/A')}\n"
+        f"부채비율: {item.get('debt_ratio', 'N/A')}\n"
+        f"당기순이익: {item.get('net_income', 'N/A')}"
         for item in financial_data
     ]
     financial_metadatas = [{"source": "financial"} for _ in financial_data]
