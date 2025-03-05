@@ -18,26 +18,31 @@ def plot_stock_plotly(df, company, period):
 
     # 🔹 데이터 컬럼명 확인 후 올바르게 매핑
     if "시간" in df.columns:
-        df["FormattedDate"] = df["시간"].dt.strftime("%H:%M") if period == "1day" else df["시간"].dt.strftime("%m-%d %H:%M")
+        if period in ["1month", "1year"]:
+            df["FormattedDate"] = df["시간"].dt.strftime("%m-%d")  # ✅ MM-DD 형식으로 변환
+        else:
+            df["FormattedDate"] = df["시간"].dt.strftime("%H:%M") if period == "1day" else df["시간"].dt.strftime("%m-%d %H:%M")
     elif "Date" in df.columns:
-        df["FormattedDate"] = df["Date"].dt.strftime("%H:%M") if period == "1day" else df["Date"].dt.strftime("%m-%d %H:%M")
+        if period in ["1month", "1year"]:
+            df["FormattedDate"] = df["Date"].dt.strftime("%m-%d")  # ✅ MM-DD 형식으로 변환
+        else:
+            df["FormattedDate"] = df["Date"].dt.strftime("%H:%M") if period == "1day" else df["Date"].dt.strftime("%m-%d %H:%M")
     else:
         st.error("📛 데이터에 '시간' 또는 'Date' 컬럼이 없습니다.")
         return
 
-    # x축 간격 설정 개선
+    # x축 간격 설정
+    tickvals = []
     if period == "1day":
-        # 매 30분 간격으로 x축 레이블 표시
-        df_subset = df.iloc[::30]
-        tickvals = df_subset["FormattedDate"].tolist()
+        tickvals = df.iloc[::60]["FormattedDate"].tolist()  # 1시간 간격
     elif period == "week":
-        tickvals = df.iloc[::60]["FormattedDate"].tolist()  # 하루 한 번 표시
+        tickvals = df[df["FormattedDate"].str.endswith("09:00")]["FormattedDate"].tolist()  # ✅ 기존 week 방식 유지
     elif period == "1month":
-        tickvals = df.iloc[::4]["FormattedDate"].tolist()  # 4일 간격
-    else:
+        tickvals = df.iloc[::4]["FormattedDate"].tolist()  # ✅ 4일 간격으로 x축 표기
+    elif period == "1year":
         df['Year'] = df["시간"].dt.year if "시간" in df.columns else df["Date"].dt.year
         df['Month'] = df["시간"].dt.month if "시간" in df.columns else df["Date"].dt.month
-
+        
         # 첫 번째 월 구하기
         first_month = df['Month'].iloc[0]
         first_year = df['Year'].iloc[0]
