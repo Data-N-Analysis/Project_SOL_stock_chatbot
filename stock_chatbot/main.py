@@ -1,7 +1,7 @@
 import streamlit as st
 from news_crawler import crawl_news
 from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
-from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr
+from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr, standardize_company_name
 from visualization import plot_stock_plotly
 import re
 from langchain_community.chat_models import ChatOpenAI
@@ -62,7 +62,7 @@ def main():
 
         # 분석 결과를 session_state에 저장
         st.session_state.news_data = news_data
-        st.session_state.company_name = company_name
+        st.session_state.company_name = standardize_company_name(company_name)
         #rag 구성요소 선언
         text_chunks = get_text_chunks(news_data)
         vectorstore = get_vectorstore(text_chunks)

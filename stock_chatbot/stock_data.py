@@ -38,16 +38,8 @@ def get_ticker(company, source="yahoo"):
         # 데이터 로드
         listing = fdr.StockListing('KRX')
 
-        # 디버깅: 입력된 회사명 출력
-        print(f"검색할 회사명: '{company}'")
-
         # 입력된 회사명 정규화
         normalized_company = company.strip().lower().replace(" ", "")
-
-        # 디버깅: 모든 기업명 출력
-        print("전체 기업명 목록:")
-        for name in listing['Name'].unique():
-            print(name)
 
         # 부분 일치 및 전체 일치 검색
         exact_match = listing[listing['Name'].str.strip() == company.strip()]
@@ -58,10 +50,6 @@ def get_ticker(company, source="yahoo"):
             .str.replace(" ", "")
             .str.contains(normalized_company)
         ]
-
-        # 디버깅: 매칭 결과 출력
-        print(f"정확한 일치 결과: {len(exact_match)}")
-        print(f"부분 일치 결과: {len(partial_match)}")
 
         # 매칭 로직
         if not exact_match.empty:
@@ -170,3 +158,24 @@ def get_daily_stock_data_fdr(ticker, period):
     except Exception as e:
         st.error(f"FinanceDataReader 데이터 불러오기 오류: {e}")
         return pd.DataFrame()
+
+
+def standardize_company_name(company_name):
+    """
+    회사명을 표준화하는 함수
+
+    Args:
+        company_name (str): 입력된 회사명
+
+    Returns:
+        str: 표준화된 회사명
+    """
+    # 단어별로 나누어 첫 글자를 대문자로 변경
+    words = company_name.split()
+    standardized_words = [
+        word.upper() if word.isalpha() and len(word) <= 2 else
+        word.capitalize()
+        for word in words
+    ]
+
+    return ' '.join(standardized_words).strip()
