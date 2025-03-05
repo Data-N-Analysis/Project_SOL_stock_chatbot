@@ -1,7 +1,7 @@
 import streamlit as st
 from news_crawler import crawl_news
 from rag_process import get_text_chunks, get_vectorstore, create_chat_chain
-from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr
+from stock_data import get_ticker, get_naver_fchart_minute_data, get_daily_stock_data_fdr, standardize_company_name
 from visualization import plot_stock_plotly
 import re
 from langchain_community.chat_models import ChatOpenAI
@@ -62,7 +62,7 @@ def main():
 
         # 분석 결과를 session_state에 저장
         st.session_state.news_data = news_data
-        st.session_state.company_name = company_name
+        st.session_state.company_name = standardize_company_name(company_name)
         #rag 구성요소 선언
         text_chunks = get_text_chunks(news_data)
         vectorstore = get_vectorstore(text_chunks)
@@ -164,7 +164,6 @@ def main():
         st.markdown("""
         #### 💬 어떤 정보가 궁금하신가요?
         * 이 기업의 최근 실적은 어떤가요?
-        * 현재 주가가 과대평가된 것 같나요?
         * 이 기업의 향후 성장 전망은 어떤가요?
         * 현재 시장 상황에서 투자 전략을 조언해주세요.
         """)

@@ -6,6 +6,8 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 from datetime import time
+import unicodedata
+
 def get_recent_trading_day():
     """
     가장 최근 거래일을 구하는 함수
@@ -33,19 +35,41 @@ def get_ticker(company, source="yahoo"):
         str: 티커 코드
     """
     try:
+        # 데이터 로드
         listing = fdr.StockListing('KRX')
-        ticker_row = listing[listing["Name"].str.strip() == company.strip()]
-        if not ticker_row.empty:
-            krx_ticker = str(ticker_row.iloc[0]["Code"]).zfill(6)
-            if source == "yahoo":
-                return krx_ticker + ".KS"  # 야후 파이낸스용 티커 변환
-            return krx_ticker  # FinanceDataReader용 티커
-        return None
+
+        # 입력된 회사명 정규화
+        normalized_company = company.strip().lower().replace(" ", "")
+
+        # 부분 일치 및 전체 일치 검색
+        exact_match = listing[listing['Name'].str.strip() == company.strip()]
+        partial_match = listing[
+            listing['Name']
+            .str.strip()
+            .str.lower()
+            .str.replace(" ", "")
+            .str.contains(normalized_company)
+        ]
+
+        # 매칭 로직
+        if not exact_match.empty:
+            ticker_row = exact_match.iloc[0]
+        elif not partial_match.empty:
+            ticker_row = partial_match.iloc[0]
+        else:
+            print("일치하는 기업을 찾을 수 없습니다.")
+            return None
+
+        # 티커 코드 생성
+        krx_ticker = str(ticker_row["Code"]).zfill(6)
+
+        if source == "yahoo":
+            return krx_ticker + ".KS"  # 야후 파이낸스용 티커 변환
+        return krx_ticker  # FinanceDataReader용 티커
+
     except Exception as e:
-        st.error(f"티커 조회 중 오류 발생: {e}")
+        print(f"티커 조회 중 오류 발생: {e}")
         return None
-
-
 # 📌 네이버 Fchart API에서 분봉 데이터 가져오기 (최신 거래일 탐색 포함)
 def get_naver_fchart_minute_data(stock_code, minute="1", days=1):
     """
@@ -134,3 +158,27 @@ def get_daily_stock_data_fdr(ticker, period):
     except Exception as e:
         st.error(f"FinanceDataReader 데이터 불러오기 오류: {e}")
         return pd.DataFrame()
+
+
+def standardize_company_name(company_name):
+    """
+    회사명을 표준화하는 함수
+
+    Args:
+        company_name (str): 입력된 회사명
+
+    Returns:
+        str: 표준화된 회사명
+    """
+    # 유니코드 정규화
+    normalized_name = unicodedata.normalize('NFC', company_name)
+
+    # 단어별로 나누어 첫 글자를 대문자로 변경
+    words = normalized_name.split()
+    standardized_words = [
+        word.upper() if word.isalpha() and len(word) <= 2 else
+        word.capitalize()
+        for word in words
+    ]
+
+    return ' '.join(standardized_words).strip()
