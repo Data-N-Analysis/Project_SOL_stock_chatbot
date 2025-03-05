@@ -77,7 +77,7 @@ def main():
         # 대화 체인 생성
         st.session_state.conversation = create_chat_chain(vectorstore, openai_api_key)
         # 기업 정보 요약 생성
-        st.session_state.company_summary = generate_company_summary(company_name, news_data, openai_api_key)
+        st.session_state.company_summary = generate_company_summary(st.session_state.company_name, news_data, openai_api_key)
         st.session_state.processComplete = True
     else :
         st.markdown(
