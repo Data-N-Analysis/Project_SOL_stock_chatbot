@@ -20,7 +20,7 @@ def update_period():
 
 def main():
     st.set_page_config(page_title="Stock Analysis Chatbot", page_icon=":chart_with_upwards_trend:")
-    st.title("📈 기업 정보 분석 QA Chat")
+    st.title("📑 기업 정보 분석 QA Chat")
 
     # 세션 상태 초기화
     if "conversation" not in st.session_state:
@@ -78,74 +78,74 @@ def main():
         )
 
     # 분석 결과가 있으면 상단에 출력
-    if st.session_state.processComplete and st.session_state.company_name:
-        # 주가 차트 표시
-        st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
+if st.session_state.processComplete and st.session_state.company_name:
+    # 주가 차트 표시
+    st.subheader(f"📈 {st.session_state.company_name} 최근 주가 추이")
 
-        # ✅ 애니메이션 포함한 CSS 스타일 추가 (기간 선택 글씨 제거)
-        st.markdown("""
-        <style>
-            /* 라디오 버튼 컨테이너 스타일 */
-            div[role="radiogroup"] {
-                display: flex;
-                justify-content: center;
-                gap: 20px;
-                margin-top: -10px; /* 위쪽 여백 줄이기 */
-            }
+    # ✅ 애니메이션 포함한 CSS 스타일 추가 (기간 선택 글씨 제거)
+    st.markdown("""
+    <style>
+        /* 라디오 버튼 컨테이너 스타일 */
+        div[role="radiogroup"] {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* 간격 줄이기 */
+            margin-top: -10px; /* 위쪽 여백 줄이기 */
+        }
 
-            /* 버튼 스타일 */
-            div[role="radiogroup"] label {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 10px 15px;
-                border: 2px solid #ddd;
-                border-radius: 20px;
-                font-size: 16px;
-                font-weight: bold;
-                cursor: pointer;
-                transition: all 0.3s ease-in-out;
-            }
+        /* 버튼 스타일 */
+        div[role="radiogroup"] label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px; /* 패딩 줄이기 */
+            border: 2px solid #ddd;
+            border-radius: 15px; /* 둥근 정도 줄이기 */
+            font-size: 14px; /* 글자 크기 줄이기 */
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
 
-            /* 선택된 버튼 스타일 */
-            div[role="radiogroup"] input:checked + label {
-                background-color: #ff4757;
-                color: white;
-                border-color: #e84118;
-                transform: scale(1.1);
-            }
+        /* 선택된 버튼 스타일 */
+        div[role="radiogroup"] input:checked + label {
+            background-color: #ff4757;
+            color: white;
+            border-color: #e84118;
+            transform: scale(1.05); /* 크기 확대 비율 줄이기 */
+        }
 
-            /* 마우스 올렸을 때 (호버 효과) */
-            div[role="radiogroup"] label:hover {
-                background-color: #dcdde1;
-                border-color: #7f8c8d;
-            }
-        </style>
-        """, unsafe_allow_html=True)
+        /* 마우스 올렸을 때 (호버 효과) */
+        div[role="radiogroup"] label:hover {
+            background-color: #dcdde1;
+            border-color: #7f8c8d;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
-        # ✅ "기간 선택" 문구 제거한 버튼 UI
-        selected_period = st.radio(
-            "",  # ✅ 라벨 제거
-            options=["1day", "week", "1month", "1year"],
-            index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
-            key="radio_selection",
-            horizontal=True,
-            on_change=update_period
-        )
+    # ✅ "기간 선택" 문구 제거한 버튼 UI
+    selected_period = st.radio(
+        "",  # ✅ 라벨 제거
+        options=["1day", "week", "1month", "1year"],
+        index=["1day", "week", "1month", "1year"].index(st.session_state.selected_period),
+        key="radio_selection",
+        horizontal=True,
+        on_change=update_period
+    )
 
-        st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
+    st.write(f"🔍 선택된 기간: {st.session_state.selected_period}")
 
-        with st.spinner(f"📊 {st.session_state.company_name} ({st.session_state.selected_period}) 데이터 불러오는 중..."):
-            ticker = get_ticker(st.session_state.company_name, source="fdr")
-            if not ticker:
-                st.error("해당 기업의 티커 코드를 찾을 수 없습니다.")
-                return
+    with st.spinner(f"📊 {st.session_state.company_name} ({st.session_state.selected_period}) 데이터 불러오는 중..."):
+        ticker = get_ticker(st.session_state.company_name, source="fdr")
+        if not ticker:
+            st.error("해당 기업의 티커 코드를 찾을 수 없습니다.")
+            return
 
-            if selected_period in ["1day", "week"]:
-                df = get_naver_fchart_minute_data(ticker, days=1 if selected_period == "1day" else 7)
+        if selected_period in ["1day", "week"]:
+            df = get_naver_fchart_minute_data(ticker, days=1 if selected_period == "1day" else 7)
 
-            else :
-                df = get_daily_stock_data_fdr(ticker, period=selected_period)
+        else:
+            df = get_daily_stock_data_fdr(ticker, period=selected_period)
 
              # 주식 차트 시각화
             if df.empty:
