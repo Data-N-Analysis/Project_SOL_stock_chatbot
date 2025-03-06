@@ -1,6 +1,6 @@
 # Project_SOL_stock_chatbot
 </br>
-<br/>
+
 ## Usage
 - [X] 프로젝트
 - [ ] 스터디
@@ -8,7 +8,6 @@
 - [ ] 기타
 
 <br/>
-</br>
 
 ## Period
 ### 2025.2 ~ 2025.3
